@@ -1,5 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime
+from typing import Callable
+from columns import Column, DimCalendarMonthColumns, DimDateColumns, DimFiscalMonthColumns
 from holidays import default_holidays, Holiday
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -38,17 +40,84 @@ class HolidayConfig:
         if self.generate_holidays:
             assert all((holiday.holiday_type in self.holiday_types for holiday in self.holidays)
                        ), 'found a holiday in holidays whose holiday_type does not exist in holiday_types'
-            assert all(holiday_type in self.holiday_types for holiday_type in self.holiday_types_for_business_days), 'found a holiday type in holiday_types_for_business_days that is not present in holiday_types'
+            assert all(holiday_type in self.holiday_types for holiday_type in self.holiday_types_for_business_days), 'found a holiday type in holiday_types_for_business_days that is not present in holiday_types.'
 
 
 @dataclass(frozen=True)
 class TableNameConfig:
     dim_date_schema_name: str = "dbo"
     dim_date_table_name: str = "DimDate"
+    dim_calendar_month_schema_name: str = 'dbo'
+    dim_calendar_month_table_name: str = 'DimCalendarMonth'
+    dim_fiscal_month_schema_name: str = 'dbo'
+    dim_fiscal_month_table_name: str = 'DimFiscalMonth'
     holiday_types_schema_name: str = "integration"
     holiday_types_table_name: str = "manual_HolidayTypes"
     holidays_schema_name: str = "integration"
     holidays_table_name: str = "manual_Holidays"
+
+
+@dataclass(frozen=True)
+class DimDateColumnConfig:
+    columns: DimDateColumns = DimDateColumns()
+    column_name_factory: Callable[[str], str] = None
+
+    def __post_init__(self):
+        col_dict = asdict(self.columns)
+        sort_keys = [v['sort_index']
+                     for v in col_dict.values()]
+        distinct_sort_keys = set(sort_keys)
+        assert len(sort_keys) == len(
+            distinct_sort_keys), 'there was a duplicate sort key in the column definitions for DimDateColumnConfig.'
+
+        if self.column_name_factory is not None:
+            new_cols: dict[str, Column] = {}
+            for k, v in col_dict.values():
+                new_cols[k] = Column(self.column_name_factory(
+                    v['name']), v['include'], v['sort_index'])
+            self.columns = DimCalendarMonthColumns(**new_cols)
+
+
+@dataclass(frozen=True)
+class DimFiscalMonthColumnConfig:
+    columns: DimFiscalMonthColumns = DimFiscalMonthColumns()
+    column_name_factory: Callable[[str], str] = None
+
+    def __post_init__(self):
+        col_dict = asdict(self.columns)
+        sort_keys = [v['sort_index']
+                     for v in col_dict.values()]
+        distinct_sort_keys = set(sort_keys)
+        assert len(sort_keys) == len(
+            distinct_sort_keys), 'there was a duplicate sort key in the column definitions for DimFiscalMonthColumnConfig.'
+
+        if self.column_name_factory is not None:
+            new_cols: dict[str, Column] = {}
+            for k, v in col_dict.values():
+                new_cols[k] = Column(self.column_name_factory(
+                    v['name']), v['include'], v['sort_index'])
+            self.columns = DimCalendarMonthColumns(**new_cols)
+
+
+@dataclass(frozen=True)
+class DimCalendarMonthColumnConfig:
+    columns: DimCalendarMonthColumns = DimCalendarMonthColumns()
+    column_name_factory: Callable[[str], str] = None
+
+    def __post_init__(self):
+        col_dict = asdict(self.columns)
+        sort_keys = [v['sort_index']
+                     for v in col_dict.values()]
+        distinct_sort_keys = set(sort_keys)
+        assert len(sort_keys) == len(
+            distinct_sort_keys), 'there was a duplicate sort key in the column definitions for DimCalendarMonthColumnConfig.'
+
+        if self.column_name_factory is not None:
+            new_cols: dict[str, Column] = {}
+            for k, v in col_dict.values():
+                new_cols[k] = Column(self.column_name_factory(
+                    v['name']), v['include'], v['sort_index'])
+            self.columns = DimCalendarMonthColumns(**new_cols)
 
 
 @dataclass
