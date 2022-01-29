@@ -1,8 +1,8 @@
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Callable
 from columns import Column, DimCalendarMonthColumns, DimDateColumns, DimFiscalMonthColumns
-from holidays import default_holidays, Holiday
+from holidays import HolidayCalendar, HolidayType, default_company_holidays, default_us_public_holidays
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -32,33 +32,32 @@ class FiscalConfig:
 @dataclass(frozen=True)
 class HolidayConfig:
     generate_holidays: bool = True
-    holiday_types: tuple[str] = ("Company Holiday", "US Public Holiday")
-    holiday_types_for_business_days: tuple[str] = ("Company Holiday")
-    holidays: list[Holiday] = default_holidays
+    holiday_types_schema_name: str = 'integration'
+    holiday_types_table_name: str = 'manual_HolidayTypes'
+    holidays_schema_name: str = 'integration'
+    holidays_table_name: str = 'manual_Holidays'
+    holiday_calendars: list[HolidayCalendar] = [
+        default_company_holidays, default_us_public_holidays]
+    holiday_types: list[HolidayType] = field(init=False)
 
     def __post_init__(self):
         if self.generate_holidays:
-            assert all((holiday.holiday_type in self.holiday_types for holiday in self.holidays)
-                       ), 'found a holiday in holidays whose holiday_type does not exist in holiday_types'
-            assert all(holiday_type in self.holiday_types for holiday_type in self.holiday_types_for_business_days), 'found a holiday type in holiday_types_for_business_days that is not present in holiday_types.'
+            holiday_types = [
+                cal.holiday_type for cal in self.holiday_calendars]
+            holiday_type_names = [t.name for t in holiday_types]
+            holiday_type_prefixes = [
+                t.generated_column_prefix for t in holiday_types]
+            assert len(holiday_type_names) == len(set(holiday_type_names)
+                                                  ), 'detected a duplicate HolidayType name in HolidayConfig.'
+            assert len(holiday_type_prefixes) == len(set(holiday_type_prefixes)
+                                                     ), 'detected a duplicate HolidayTypePrefix in HolidayConfig.'
+            self.holiday_types = holiday_types
 
 
 @dataclass(frozen=True)
-class TableNameConfig:
-    dim_date_schema_name: str = "dbo"
-    dim_date_table_name: str = "DimDate"
-    dim_calendar_month_schema_name: str = 'dbo'
-    dim_calendar_month_table_name: str = 'DimCalendarMonth'
-    dim_fiscal_month_schema_name: str = 'dbo'
-    dim_fiscal_month_table_name: str = 'DimFiscalMonth'
-    holiday_types_schema_name: str = "integration"
-    holiday_types_table_name: str = "manual_HolidayTypes"
-    holidays_schema_name: str = "integration"
-    holidays_table_name: str = "manual_Holidays"
-
-
-@dataclass(frozen=True)
-class DimDateColumnConfig:
+class DimDateConfig:
+    table_schema: str = 'dbo'
+    table_name: str = 'DimDate'
     columns: DimDateColumns = DimDateColumns()
     column_name_factory: Callable[[str], str] = None
 
@@ -79,7 +78,9 @@ class DimDateColumnConfig:
 
 
 @dataclass(frozen=True)
-class DimFiscalMonthColumnConfig:
+class DimFiscalMonthConfig:
+    table_schema: str = 'dbo'
+    table_name: str = 'DimFiscalMonth'
     columns: DimFiscalMonthColumns = DimFiscalMonthColumns()
     column_name_factory: Callable[[str], str] = None
 
@@ -100,7 +101,9 @@ class DimFiscalMonthColumnConfig:
 
 
 @dataclass(frozen=True)
-class DimCalendarMonthColumnConfig:
+class DimCalendarMonthConfig:
+    table_schema: str = 'dbo'
+    table_name: str = 'DimCalendarMonth'
     columns: DimCalendarMonthColumns = DimCalendarMonthColumns()
     column_name_factory: Callable[[str], str] = None
 
@@ -126,13 +129,19 @@ class ScriptGeneratorConfig:
     date_range: DateRange = DateRange()
     fiscal_config: FiscalConfig = FiscalConfig()
     time_zone: str = "Mountain Standard Time"
-    table_name_config: TableNameConfig = TableNameConfig()
     holiday_config: HolidayConfig = HolidayConfig()
+    dim_date_config: DimDateConfig = DimDateConfig()
+    dim_fiscal_month_config: DimFiscalMonthConfig = DimFiscalMonthConfig()
+    dim_calendar_month_config: DimCalendarMonthConfig = DimCalendarMonthConfig()
 
 
 class ScriptGenerator(ABC):
     @abstractmethod
     def __init__(self, config: ScriptGeneratorConfig = ScriptGeneratorConfig()):
+        pass
+
+    @abstractmethod
+    def add_generator_specific_config(self, config: object) -> None:
         pass
 
     @abstractmethod
