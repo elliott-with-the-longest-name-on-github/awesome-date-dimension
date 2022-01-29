@@ -1,15 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, auto
 from holidays import default_holidays, Holiday
-
-
-# class ScriptGenerator():
-#     def __init__(self, ):
-
-
-class Language(Enum):
-    TSQL = auto()
+from abc import ABC, abstractmethod
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -60,9 +53,19 @@ class TableNameConfig:
 
 @dataclass
 class ScriptGeneratorConfig:
-    language: Language = Language.TSQL
+    outdir_base: Path = Path('../output')
     date_range: DateRange = DateRange()
     fiscal_config: FiscalConfig = FiscalConfig()
     time_zone: str = "Mountain Standard Time"
     table_name_config: TableNameConfig = TableNameConfig()
     holiday_config: HolidayConfig = HolidayConfig()
+
+
+class ScriptGenerator(ABC):
+    @abstractmethod
+    def __init__(self, config: ScriptGeneratorConfig = ScriptGeneratorConfig()):
+        pass
+
+    @abstractmethod
+    def generate_scripts(self) -> None:
+        pass
