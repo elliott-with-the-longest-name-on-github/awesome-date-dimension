@@ -14,7 +14,7 @@ class DateRange:
 
 
 @dataclass(frozen=True)
-class Fiscal:
+class FiscalConfig:
     fiscal_month_start_day: int = 1
     fiscal_year_start_month: int = 1
     fiscal_month_end_matches_calendar: bool = True
@@ -391,7 +391,7 @@ default_us_public_holidays: HolidayCalendar = HolidayCalendar(
 
 
 @dataclass(frozen=True)
-class Holiday:
+class HolidayConfig:
     generate_holidays: bool = True
     holiday_types_schema_name: str = 'integration'
     holiday_types_table_name: str = 'manual_HolidayTypes'
@@ -409,9 +409,9 @@ class Holiday:
             holiday_type_prefixes = [
                 t.generated_column_prefix for t in holiday_types]
             assert len(holiday_type_names) == len(set(holiday_type_names)
-                                                  ), 'detected a duplicate HolidayType name in HolidayConfig.'
+                                                  ), 'detected a duplicate HolidayType name in Holiday.'
             assert len(holiday_type_prefixes) == len(set(holiday_type_prefixes)
-                                                     ), 'detected a duplicate HolidayTypePrefix in HolidayConfig.'
+                                                     ), 'detected a duplicate HolidayTypePrefix in Holiday.'
             self.holiday_types = holiday_types
 
 
@@ -595,7 +595,7 @@ class DimDateColumns:
 
 
 @dataclass(frozen=True)
-class DimDate:
+class DimDateConfig:
     table_schema: str = 'dbo'
     table_name: str = 'DimDate'
     columns: DimDateColumns = DimDateColumns()
@@ -607,7 +607,7 @@ class DimDate:
                      for v in col_dict.values()]
         distinct_sort_keys = set(sort_keys)
         assert len(sort_keys) == len(
-            distinct_sort_keys), 'there was a duplicate sort key in the column definitions for DimDateColumnConfig.'
+            distinct_sort_keys), 'there was a duplicate sort key in the column definitions for DimDateColumn.'
 
         if self.column_name_factory is not None:
             new_cols: dict[str, Column] = {}
@@ -705,7 +705,7 @@ class DimFiscalMonthColumns:
 
 
 @dataclass(frozen=True)
-class DimFiscalMonth:
+class DimFiscalMonthConfig:
     table_schema: str = 'dbo'
     table_name: str = 'DimFiscalMonth'
     columns: DimFiscalMonthColumns = DimFiscalMonthColumns()
@@ -717,7 +717,7 @@ class DimFiscalMonth:
                      for v in col_dict.values()]
         distinct_sort_keys = set(sort_keys)
         assert len(sort_keys) == len(
-            distinct_sort_keys), 'there was a duplicate sort key in the column definitions for DimFiscalMonthColumnConfig.'
+            distinct_sort_keys), 'there was a duplicate sort key in the column definitions for DimFiscalMonthColumn.'
 
         if self.column_name_factory is not None:
             new_cols: dict[str, Column] = {}
@@ -827,7 +827,7 @@ class DimCalendarMonthConfig:
                      for v in col_dict.values()]
         distinct_sort_keys = set(sort_keys)
         assert len(sort_keys) == len(
-            distinct_sort_keys), 'there was a duplicate sort key in the column definitions for DimCalendarMonthColumnConfig.'
+            distinct_sort_keys), 'there was a duplicate sort key in the column definitions for DimCalendarMonthColumn.'
 
         if self.column_name_factory is not None:
             new_cols: dict[str, Column] = {}
@@ -841,9 +841,9 @@ class DimCalendarMonthConfig:
 class Config:
     outdir_base: Path = Path('../output')
     date_range: DateRange = DateRange()
-    fiscal_config: Fiscal = Fiscal()
+    fiscal: FiscalConfig = FiscalConfig()
     time_zone: str = "Mountain Standard Time"
-    holiday_config: Holiday = Holiday()
-    dim_date_config: DimDate = DimDate()
-    dim_fiscal_month_config: DimFiscalMonth = DimFiscalMonth()
-    dim_calendar_month_config: DimCalendarMonthConfig = DimCalendarMonthConfig()
+    holidays: HolidayConfig = HolidayConfig()
+    dim_date: DimDateConfig = DimDateConfig()
+    dim_fiscal_month: DimFiscalMonthConfig = DimFiscalMonthConfig()
+    dim_calendar_month: DimCalendarMonthConfig = DimCalendarMonthConfig()
