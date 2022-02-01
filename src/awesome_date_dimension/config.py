@@ -1,12 +1,12 @@
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, date
 from typing import Callable
 from pathlib import Path
 
 
 @dataclass(frozen=True)
 class DateRange:
-    start_date: datetime.date = field(
+    start_date: date = field(
         default_factory=lambda: datetime.fromisoformat('2000-01-01').date())
     num_years: int = 100
 
@@ -37,7 +37,7 @@ class HolidayType:
 @dataclass(frozen=True)
 class Holiday:
     holiday_name: str
-    holiday_date: datetime.date
+    holiday_date: date
 
 
 @dataclass(frozen=True)

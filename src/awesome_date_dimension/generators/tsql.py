@@ -1,7 +1,11 @@
 from dataclasses import asdict, dataclass
 from pathlib import Path
 import shutil
+from stat import FILE_ATTRIBUTE_READONLY
 from typing import Any, Iterable
+
+from ._tsql_templates.holidays_insert_template import holidays_insert_template
+from ._tsql_templates.holiday_types_insert_template import holiday_types_insert_template
 from ..config import Column, Config, DimDateColumns, DimFiscalMonthColumns, DimCalendarMonthColumns, HolidayConfig
 from ._tsql_templates.table_setup_template import table_setup_template
 
@@ -635,6 +639,7 @@ class TSQLGenerator():
 
     def _generate_holiday_setup_scripts(self, file_no: int, base_path: Path) -> int:
         if self._config.holidays.generate_holidays:
+
             # Holiday Types
             ht_tabledef = [
                 f'CREATE TABLE {self._config.holidays.holiday_types_schema_name}.{self._config.holidays.holiday_types_table_name} (',
@@ -645,8 +650,7 @@ class TSQLGenerator():
             file_path = base_path / \
                 TSQLGenerator._get_sql_filename(
                     file_no, self._config.holidays.holiday_types_table_name)
-            if file_path.exists():
-                TSQLGenerator._raise_fileexistserror(file_path)
+            TSQLGenerator._assert_filepath_available(file_path)
             file_path.write_text('\n'.join(ht_tabledef))
 
             file_no += 1
@@ -662,8 +666,7 @@ class TSQLGenerator():
             file_path = base_path / \
                 TSQLGenerator._get_sql_filename(
                     file_no, self._config.holidays.holidays_table_name)
-            if file_path.exists():
-                TSQLGenerator._raise_fileexistserror(file_path)
+            TSQLGenerator._assert_filepath_available(file_path)
             file_path.write_text('\n'.join(h_tabledef))
             return file_no + 1
         return file_no
@@ -681,9 +684,31 @@ class TSQLGenerator():
             file_no, base_path)
         return folder_no + 1
 
+    def _generate_holiday_type_build_script(self, file_no: int, base_path: Path) -> int:
+        cfg = self._config.holidays
+        scriptdef = holiday_types_insert_template(
+            cfg.holiday_types_schema_name, cfg.holiday_types_table_name, cfg.holiday_types)
+        file_path = base_path / \
+            TSQLGenerator._get_sql_filename(
+                file_no, cfg.holiday_types_table_name)
+        TSQLGenerator._assert_filepath_available(file_path)
+        file_path.write_text(scriptdef)
+        return file_no + 1
+
+    def _generate_holidays_build_script(self, file_no: int, base_path: Path) -> int:
+        cfg = self._config.holidays
+        scriptdef = holidays_insert_template(cfg)
+        file_path = base_path / \
+            TSQLGenerator._get_sql_filename(
+                file_no, cfg.holidays_table_name)
+        TSQLGenerator._assert_filepath_available(file_path)
+        file_path.write_text(scriptdef)
+        return file_no + 1
+
     def _generate_holiday_build_scripts(self, file_no: int, base_path: Path) -> int:
-        # raise NotImplementedError()
-        pass
+        file_no = self._generate_holiday_type_build_script(file_no, base_path)
+        file_no = self._generate_holidays_build_script(file_no, base_path)
+        return file_no
 
     def _generate_dim_date_build_scripts(self, file_no: int, base_path: Path) -> int:
         # raise NotImplementedError()
@@ -787,6 +812,11 @@ class TSQLGenerator():
         if file_path.exists():
             TSQLGenerator._raise_fileexistserror(file_path)
         file_path.write_text(table_def)
+
+    @staticmethod
+    def _assert_filepath_available(path: Path) -> None:
+        if path.exists():
+            TSQLGenerator._raise_fileexistserror(path)
 
     @staticmethod
     def _raise_fileexistserror(file_name: str) -> None:
