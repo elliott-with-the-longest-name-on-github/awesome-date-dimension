@@ -485,7 +485,7 @@ class DimDateColumns:
     fraction_of_week = Column('FractionOfWeek', True, 57)
     fraction_of_month = Column('FractionOfMonth', True, 58)
     fraction_of_quarter = Column('FractionOfQuarter', True, 59)
-    fraction_of_year_ = Column('FractionOfYear', True, 60)
+    fraction_of_year = Column('FractionOfYear', True, 60)
     prior_day = Column('PriorDay', True, 61)
     next_day = Column('NextDay', True, 62)
     same_day_prior_week = Column('SameDayPriorWeek', True, 63)
