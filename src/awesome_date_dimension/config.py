@@ -16,15 +16,15 @@ class DateRange:
 
 @dataclass(frozen=True)
 class FiscalConfig:
-    fiscal_month_start_day: int = 1
-    fiscal_year_start_month: int = 1
-    fiscal_month_end_matches_calendar: bool = True
-    fiscal_quarter_end_matches_calendar: bool = True
-    fiscal_year_end_matches_calendar: bool = True
+    month_start_day: int = 1
+    year_start_month: int = 1
+    month_end_matches_calendar: bool = True
+    quarter_end_matches_calendar: bool = True
+    year_end_matches_calendar: bool = True
 
     def __post_init__(self):
-        assert 1 <= self.fiscal_month_start_day <= 28, 'fiscal_month_start_day must be between 1 and 28.'
-        assert 1 <= self.fiscal_year_start_month <= 12, 'fiscal_year_start_month must be between 1 and 12.'
+        assert 1 <= self.month_start_day <= 28, 'fiscal_month_start_day must be between 1 and 28.'
+        assert 1 <= self.year_start_month <= 12, 'fiscal_year_start_month must be between 1 and 12.'
 
 
 @dataclass(frozen=True)
