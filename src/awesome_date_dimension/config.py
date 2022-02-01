@@ -413,10 +413,10 @@ class HolidayConfig:
             holiday_type_prefixes = [
                 t.generated_column_prefix for t in holiday_types]
             assert len(holiday_type_names) == len(set(holiday_type_names)
-                                                  ), 'detected a duplicate HolidayType name in Holiday.'
+                                                  ), 'detected a duplicate HolidayType name in Holiday. This would create multiple columns with the same name, which is not allowed.'
             assert len(holiday_type_prefixes) == len(set(holiday_type_prefixes)
-                                                     ), 'detected a duplicate HolidayTypePrefix in Holiday.'
-            self.holiday_types = holiday_types
+                                                     ), 'detected a duplicate HolidayTypePrefix in Holiday. This would create multiple columns with the same name, which is not allowed.'
+            object.__setattr__(self, 'holiday_types', holiday_types)
 
 
 @dataclass(frozen=True)
@@ -428,312 +428,323 @@ class Column:
 
 @dataclass(frozen=True)
 class DimDateColumns:
-    date_key = field(default_factory=lambda: Column('DateKey', True, 0))
-    the_date = field(default_factory=lambda: Column('TheDate', True, 1))
-    iso_date_name = field(
+    date_key: Column = field(
+        default_factory=lambda: Column('DateKey', True, 0))
+    the_date: Column = field(
+        default_factory=lambda: Column('TheDate', True, 1))
+    iso_date_name: Column = field(
         default_factory=lambda: Column('ISODateName', True, 2))
-    american_date_name = field(
+    american_date_name: Column = field(
         default_factory=lambda: Column('AmericanDateName', True, 3))
-    day_of_week_name = field(
+    day_of_week_name: Column = field(
         default_factory=lambda: Column('DayOfWeekName', True, 4))
-    day_of_week_abbrev = field(
+    day_of_week_abbrev: Column = field(
         default_factory=lambda: Column('DayOfWeekAbbrev', True, 5))
-    month_name = field(default_factory=lambda: Column('MonthName', True, 6))
-    month_abbrev = field(
+    month_name: Column = field(
+        default_factory=lambda: Column('MonthName', True, 6))
+    month_abbrev: Column = field(
         default_factory=lambda: Column('MonthAbbrev', True, 7))
-    year_week_name = field(
+    year_week_name: Column = field(
         default_factory=lambda: Column('YearWeekName', True, 8))
-    year_month_name = field(
+    year_month_name: Column = field(
         default_factory=lambda: Column('YearMonthName', True, 9))
-    month_year_name = field(
+    month_year_name: Column = field(
         default_factory=lambda: Column('MonthYearName', True, 10))
-    year_quarter_name = field(
+    year_quarter_name: Column = field(
         default_factory=lambda: Column('YearQuarterName', True, 11))
-    year = field(default_factory=lambda: Column('Year', True, 12))
-    year_week = field(default_factory=lambda: Column('YearWeek', True, 13))
-    iso_year_week_code = field(
+    year: Column = field(default_factory=lambda: Column('Year', True, 12))
+    year_week: Column = field(
+        default_factory=lambda: Column('YearWeek', True, 13))
+    iso_year_week_code: Column = field(
         default_factory=lambda: Column('ISOYearWeekCode', True, 14))
-    year_month = field(default_factory=lambda: Column('YearMonth', True, 15))
-    year_quarter = field(
+    year_month: Column = field(
+        default_factory=lambda: Column('YearMonth', True, 15))
+    year_quarter: Column = field(
         default_factory=lambda: Column('YearQuarter', True, 16))
-    day_of_week_starting_monday = field(
+    day_of_week_starting_monday: Column = field(
         default_factory=lambda: Column('DayOfWeekStartingMonday', True, 17))
-    day_of_week = field(default_factory=lambda: Column('DayOfWeek', True, 18))
-    day_of_month = field(
+    day_of_week: Column = field(
+        default_factory=lambda: Column('DayOfWeek', True, 18))
+    day_of_month: Column = field(
         default_factory=lambda: Column('DayOfMonth', True, 19))
-    day_of_quarter = field(
+    day_of_quarter: Column = field(
         default_factory=lambda: Column('DayOfQuarter', True, 20))
-    day_of_year = field(default_factory=lambda: Column('DayOfYear', True, 21))
-    week_of_quarter = field(
+    day_of_year: Column = field(
+        default_factory=lambda: Column('DayOfYear', True, 21))
+    week_of_quarter: Column = field(
         default_factory=lambda: Column('WeekOfQuarter', True, 22))
-    week_of_year = field(
+    week_of_year: Column = field(
         default_factory=lambda: Column('WeekOfYear', True, 23))
-    iso_week_of_year = field(
+    iso_week_of_year: Column = field(
         default_factory=lambda: Column('ISOWeekOfYear', True, 24))
-    month = field(default_factory=lambda: Column('Month', True, 25))
-    month_of_quarter = field(
+    month: Column = field(default_factory=lambda: Column('Month', True, 25))
+    month_of_quarter: Column = field(
         default_factory=lambda: Column('MonthOfQuarter', True, 26))
-    quarter = field(default_factory=lambda: Column('Quarter', True, 27))
-    days_in_month = field(
+    quarter: Column = field(
+        default_factory=lambda: Column('Quarter', True, 27))
+    days_in_month: Column = field(
         default_factory=lambda: Column('DaysInMonth', True, 28))
-    days_in_quarter = field(
+    days_in_quarter: Column = field(
         default_factory=lambda: Column('DaysInQuarter', True, 29))
-    days_in_year = field(
+    days_in_year: Column = field(
         default_factory=lambda: Column('DaysInYear', True, 30))
-    day_offset_from_today = field(
+    day_offset_from_today: Column = field(
         default_factory=lambda: Column('DayOffsetFromToday', True, 31))
-    month_offset_from_today = field(
+    month_offset_from_today: Column = field(
         default_factory=lambda: Column('MonthOffsetFromToday', True, 32))
-    quarter_offset_from_today = field(
+    quarter_offset_from_today: Column = field(
         default_factory=lambda: Column('QuarterOffsetFromToday', True, 33))
-    year_offset_from_today = field(
+    year_offset_from_today: Column = field(
         default_factory=lambda: Column('YearOffsetFromToday', True, 34))
-    today_flag = field(default_factory=lambda: Column('TodayFlag', True, 35))
-    current_week_starting_monday_flag = field(default_factory=lambda: Column(
+    today_flag: Column = field(
+        default_factory=lambda: Column('TodayFlag', True, 35))
+    current_week_starting_monday_flag: Column = field(default_factory=lambda: Column(
         'CurrentWeekStartingMondayFlag', True, 36))
-    current_week_flag = field(
+    current_week_flag: Column = field(
         default_factory=lambda: Column('CurrentWeekFlag', True, 37))
-    prior_week_flag = field(
+    prior_week_flag: Column = field(
         default_factory=lambda: Column('PriorWeekFlag', True, 38))
-    next_week_flag = field(
+    next_week_flag: Column = field(
         default_factory=lambda: Column('NextWeekFlag', True, 39))
-    current_month_flag = field(
+    current_month_flag: Column = field(
         default_factory=lambda: Column('CurrentMonthFlag', True, 40))
-    prior_month_flag = field(
+    prior_month_flag: Column = field(
         default_factory=lambda: Column('PriorMonthFlag', True, 41))
-    next_month_flag = field(
+    next_month_flag: Column = field(
         default_factory=lambda: Column('NextMonthFlag', True, 42))
-    current_quarter_flag = field(
+    current_quarter_flag: Column = field(
         default_factory=lambda: Column('CurrentQuarterFlag', True, 43))
-    prior_quarter_flag = field(
+    prior_quarter_flag: Column = field(
         default_factory=lambda: Column('PriorQuarterFlag', True, 44))
-    next_quarter_flag = field(
+    next_quarter_flag: Column = field(
         default_factory=lambda: Column('NextQuarterFlag', True, 45))
-    current_year_flag = field(
+    current_year_flag: Column = field(
         default_factory=lambda: Column('CurrentYearFlag', True, 46))
-    prior_year_flag = field(
+    prior_year_flag: Column = field(
         default_factory=lambda: Column('PriorYearFlag', True, 47))
-    next_year_flag = field(
+    next_year_flag: Column = field(
         default_factory=lambda: Column('NextYearFlag', True, 48))
-    weekday_flag = field(
+    weekday_flag: Column = field(
         default_factory=lambda: Column('WeekdayFlag', True, 49))
-    business_day_flag = field(
+    business_day_flag: Column = field(
         default_factory=lambda: Column('BusinessDayFlag', True, 50))
-    first_day_of_month_flag = field(
+    first_day_of_month_flag: Column = field(
         default_factory=lambda: Column('FirstDayOfMonthFlag', True, 51))
-    last_day_of_month_flag = field(
+    last_day_of_month_flag: Column = field(
         default_factory=lambda: Column('LastDayOfMonthFlag', True, 52))
-    first_day_of_quarter_flag = field(
+    first_day_of_quarter_flag: Column = field(
         default_factory=lambda: Column('FirstDayOfQuarterFlag', True, 53))
-    last_day_of_quarter_flag = field(
+    last_day_of_quarter_flag: Column = field(
         default_factory=lambda: Column('LastDayOfQuarterFlag', True, 54))
-    first_day_of_year_flag = field(
+    first_day_of_year_flag: Column = field(
         default_factory=lambda: Column('FirstDayOfYearFlag', True, 55))
-    last_day_of_year_flag = field(
+    last_day_of_year_flag: Column = field(
         default_factory=lambda: Column('LastDayOfYearFlag', True, 56))
-    fraction_of_week = field(
+    fraction_of_week: Column = field(
         default_factory=lambda: Column('FractionOfWeek', True, 57))
-    fraction_of_month = field(
+    fraction_of_month: Column = field(
         default_factory=lambda: Column('FractionOfMonth', True, 58))
-    fraction_of_quarter = field(
+    fraction_of_quarter: Column = field(
         default_factory=lambda: Column('FractionOfQuarter', True, 59))
-    fraction_of_year = field(
+    fraction_of_year: Column = field(
         default_factory=lambda: Column('FractionOfYear', True, 60))
-    prior_day = field(default_factory=lambda: Column('PriorDay', True, 61))
-    next_day = field(default_factory=lambda: Column('NextDay', True, 62))
-    same_day_prior_week = field(
+    prior_day: Column = field(
+        default_factory=lambda: Column('PriorDay', True, 61))
+    next_day: Column = field(
+        default_factory=lambda: Column('NextDay', True, 62))
+    same_day_prior_week: Column = field(
         default_factory=lambda: Column('SameDayPriorWeek', True, 63))
-    same_day_prior_month = field(
+    same_day_prior_month: Column = field(
         default_factory=lambda: Column('SameDayPriorMonth', True, 64))
-    same_day_prior_quarter = field(
+    same_day_prior_quarter: Column = field(
         default_factory=lambda: Column('SameDayPriorQuarter', True, 65))
-    same_day_prior_year = field(
+    same_day_prior_year: Column = field(
         default_factory=lambda: Column('SameDayPriorYear', True, 66))
-    same_day_next_week = field(
+    same_day_next_week: Column = field(
         default_factory=lambda: Column('SameDayNextWeek', True, 67))
-    same_day_next_month = field(
+    same_day_next_month: Column = field(
         default_factory=lambda: Column('SameDayNextMonth', True, 68))
-    same_day_next_quarter = field(
+    same_day_next_quarter: Column = field(
         default_factory=lambda: Column('SameDayNextQuarter', True, 69))
-    same_day_next_year = field(
+    same_day_next_year: Column = field(
         default_factory=lambda: Column('SameDayNextYear', True, 70))
-    current_week_start = field(
+    current_week_start: Column = field(
         default_factory=lambda: Column('CurrentWeekStart', True, 71))
-    current_week_end = field(
+    current_week_end: Column = field(
         default_factory=lambda: Column('CurrentWeekEnd', True, 72))
-    current_month_start = field(
+    current_month_start: Column = field(
         default_factory=lambda: Column('CurrentMonthStart', True, 73))
-    current_month_end = field(
+    current_month_end: Column = field(
         default_factory=lambda: Column('CurrentMonthEnd', True, 74))
-    current_quarter_start = field(
+    current_quarter_start: Column = field(
         default_factory=lambda: Column('CurrentQuarterStart', True, 75))
-    current_quarter_end = field(
+    current_quarter_end: Column = field(
         default_factory=lambda: Column('CurrentQuarterEnd', True, 76))
-    current_year_start = field(
+    current_year_start: Column = field(
         default_factory=lambda: Column('CurrentYearStart', True, 77))
-    current_year_end = field(
+    current_year_end: Column = field(
         default_factory=lambda: Column('CurrentYearEnd', True, 78))
-    prior_week_start = field(
+    prior_week_start: Column = field(
         default_factory=lambda: Column('PriorWeekStart', True, 79))
-    prior_week_end = field(
+    prior_week_end: Column = field(
         default_factory=lambda: Column('PriorWeekEnd', True, 80))
-    prior_month_start = field(
+    prior_month_start: Column = field(
         default_factory=lambda: Column('PriorMonthStart', True, 81))
-    prior_month_end = field(
+    prior_month_end: Column = field(
         default_factory=lambda: Column('PriorMonthEnd', True, 82))
-    prior_quarter_start = field(
+    prior_quarter_start: Column = field(
         default_factory=lambda: Column('PriorQuarterStart', True, 83))
-    prior_quarter_end = field(
+    prior_quarter_end: Column = field(
         default_factory=lambda: Column('PriorQuarterEnd', True, 84))
-    prior_year_start = field(
+    prior_year_start: Column = field(
         default_factory=lambda: Column('PriorYearStart', True, 85))
-    prior_year_end = field(
+    prior_year_end: Column = field(
         default_factory=lambda: Column('PriorYearEnd', True, 86))
-    next_week_start = field(
+    next_week_start: Column = field(
         default_factory=lambda: Column('NextWeekStart', True, 87))
-    next_week_end = field(
+    next_week_end: Column = field(
         default_factory=lambda: Column('NextWeekEnd', True, 88))
-    next_month_start = field(
+    next_month_start: Column = field(
         default_factory=lambda: Column('NextMonthStart', True, 89))
-    next_month_end = field(
+    next_month_end: Column = field(
         default_factory=lambda: Column('NextMonthEnd', True, 90))
-    next_quarter_start = field(
+    next_quarter_start: Column = field(
         default_factory=lambda: Column('NextQuarterStart', True, 91))
-    next_quarter_end = field(
+    next_quarter_end: Column = field(
         default_factory=lambda: Column('NextQuarterEnd', True, 92))
-    next_year_start = field(
+    next_year_start: Column = field(
         default_factory=lambda: Column('NextYearStart', True, 93))
-    next_year_end = field(
+    next_year_end: Column = field(
         default_factory=lambda: Column('NextYearEnd', True, 94))
-    weekly_burnup_starting_monday = field(default_factory=lambda: Column(
+    weekly_burnup_starting_monday: Column = field(default_factory=lambda: Column(
         'WeeklyBurnupStartingMonday', True, 95))
-    weekly_burnup = field(
+    weekly_burnup: Column = field(
         default_factory=lambda: Column('WeeklyBurnup', True, 96))
-    monthly_burnup = field(
+    monthly_burnup: Column = field(
         default_factory=lambda: Column('MonthlyBurnup', True, 97))
-    quarterly_burnup = field(
+    quarterly_burnup: Column = field(
         default_factory=lambda: Column('QuarterlyBurnup', True, 98))
-    yearly_burnup = field(
+    yearly_burnup: Column = field(
         default_factory=lambda: Column('YearlyBurnup', True, 99))
-    fiscal_month_name = field(
+    fiscal_month_name: Column = field(
         default_factory=lambda: Column('FiscalMonthName', True, 100))
-    fiscal_month_abbrev = field(
+    fiscal_month_abbrev: Column = field(
         default_factory=lambda: Column('FiscalMonthAbbrev', True, 101))
-    fiscal_year_name = field(default_factory=lambda: Column(
+    fiscal_year_name: Column = field(default_factory=lambda: Column(
         'FiscalYearWeekName', True, 102))
-    fiscal_year_month_name = field(
+    fiscal_year_month_name: Column = field(
         default_factory=lambda: Column('FiscalYearMonthName', True, 103))
-    fiscal_month_year_name = field(
+    fiscal_month_year_name: Column = field(
         default_factory=lambda: Column('FiscalMonthYearName', True, 104))
-    fiscal_year_quarter_name = field(
+    fiscal_year_quarter_name: Column = field(
         default_factory=lambda: Column('FiscalYearQuarterName', True, 105))
-    fiscal_year = field(
+    fiscal_year: Column = field(
         default_factory=lambda: Column('FiscalYear', True, 106))
-    fiscal_year_week = field(
+    fiscal_year_week: Column = field(
         default_factory=lambda: Column('FiscalYearWeek', True, 107))
-    fiscal_year_month = field(
+    fiscal_year_month: Column = field(
         default_factory=lambda: Column('FiscalYearMonth', True, 108))
-    fiscal_year_quarter = field(
+    fiscal_year_quarter: Column = field(
         default_factory=lambda: Column('FiscalYearQuarter', True, 109))
-    fiscal_day_of_month = field(
+    fiscal_day_of_month: Column = field(
         default_factory=lambda: Column('FiscalDayOfMonth', True, 110))
-    fiscal_day_of_quarter = field(
+    fiscal_day_of_quarter: Column = field(
         default_factory=lambda: Column('FiscalDayOfQuarter', True, 111))
-    fiscal_day_of_year = field(
+    fiscal_day_of_year: Column = field(
         default_factory=lambda: Column('FiscalDayOfYear', True, 112))
-    fiscal_week_of_quarter = field(
+    fiscal_week_of_quarter: Column = field(
         default_factory=lambda: Column('FiscalWeekOfQuarter', True, 113))
-    fiscal_week_of_year = field(
+    fiscal_week_of_year: Column = field(
         default_factory=lambda: Column('FiscalWeekOfYear', True, 114))
-    fiscal_month = field(
+    fiscal_month: Column = field(
         default_factory=lambda: Column('FiscalMonth', True, 115))
-    fiscal_month_of_quarter = field(
+    fiscal_month_of_quarter: Column = field(
         default_factory=lambda: Column('FiscalMonthOfQuarter', True, 116))
-    fiscal_quarter = field(
+    fiscal_quarter: Column = field(
         default_factory=lambda: Column('FiscalQuarter', True, 117))
-    fiscal_days_in_month = field(
+    fiscal_days_in_month: Column = field(
         default_factory=lambda: Column('FiscalDaysInMonth', True, 118))
-    fiscal_days_in_quarter = field(
+    fiscal_days_in_quarter: Column = field(
         default_factory=lambda: Column('FiscalDaysInQuarter', True, 119))
-    fiscal_days_in_year = field(
+    fiscal_days_in_year: Column = field(
         default_factory=lambda: Column('FiscalDaysInYear', True, 120))
-    fiscal_current_month_flag = field(
+    fiscal_current_month_flag: Column = field(
         default_factory=lambda: Column('FiscalCurrentMonthFlag', True, 121))
-    fiscal_prior_month_flag = field(
+    fiscal_prior_month_flag: Column = field(
         default_factory=lambda: Column('FiscalPriorMonthFlag', True, 122))
-    fiscal_next_month_flag = field(
+    fiscal_next_month_flag: Column = field(
         default_factory=lambda: Column('FiscalNextMonthFlag', True, 123))
-    fiscal_current_quarter_flag = field(
+    fiscal_current_quarter_flag: Column = field(
         default_factory=lambda: Column('FiscalCurrentQuarterFlag', True, 124))
-    fiscal_prior_quarter_flag = field(
+    fiscal_prior_quarter_flag: Column = field(
         default_factory=lambda: Column('FiscalPriorQuarterFlag', True, 125))
-    fiscal_next_quarter_flag = field(
+    fiscal_next_quarter_flag: Column = field(
         default_factory=lambda: Column('FiscalNextQuarterFlag', True, 126))
-    fiscal_current_year_flag = field(
+    fiscal_current_year_flag: Column = field(
         default_factory=lambda: Column('FiscalCurrentYearFlag', True, 127))
-    fiscal_prior_year_flag = field(
+    fiscal_prior_year_flag: Column = field(
         default_factory=lambda: Column('FiscalPriorYearFlag', True, 128))
-    fiscal_next_year_flag = field(
+    fiscal_next_year_flag: Column = field(
         default_factory=lambda: Column('FiscalNextYearFlag', True, 129))
-    fiscal_first_day_of_month_flag = field(default_factory=lambda: Column(
+    fiscal_first_day_of_month_flag: Column = field(default_factory=lambda: Column(
         'FiscalFirstDayOfMonthFlag', True, 130))
-    fiscal_last_day_of_month_flag = field(default_factory=lambda: Column(
+    fiscal_last_day_of_month_flag: Column = field(default_factory=lambda: Column(
         'FiscalLastDayOfMonthFlag', True, 131))
-    fiscal_first_day_of_quarter_flag = field(default_factory=lambda: Column(
+    fiscal_first_day_of_quarter_flag: Column = field(default_factory=lambda: Column(
         'FiscalFirstDayOfQuarterFlag', True, 132))
-    fiscal_last_day_of_quarter_flag = field(default_factory=lambda: Column(
+    fiscal_last_day_of_quarter_flag: Column = field(default_factory=lambda: Column(
         'FiscalLastDayOfQuarterFlag', True, 133))
-    fiscal_first_day_of_year_flag = field(default_factory=lambda: Column(
+    fiscal_first_day_of_year_flag: Column = field(default_factory=lambda: Column(
         'FiscalFirstDayOfYearFlag', True, 134))
-    fiscal_last_day_of_year_flag = field(
+    fiscal_last_day_of_year_flag: Column = field(
         default_factory=lambda: Column('FiscalLastDayOfYearFlag', True, 135))
-    fiscal_fraction_of_month = field(
+    fiscal_fraction_of_month: Column = field(
         default_factory=lambda: Column('FiscalFractionOfMonth', True, 136))
-    fiscal_fraction_of_quarter = field(
+    fiscal_fraction_of_quarter: Column = field(
         default_factory=lambda: Column('FiscalFractionOfQuarter', True, 137))
-    fiscal_fraction_of_year = field(
+    fiscal_fraction_of_year: Column = field(
         default_factory=lambda: Column('FiscalFractionOfYear', True, 138))
-    fiscal_current_month_start = field(
+    fiscal_current_month_start: Column = field(
         default_factory=lambda: Column('FiscalCurrentMonthStart', True, 139))
-    fiscal_current_month_end = field(
+    fiscal_current_month_end: Column = field(
         default_factory=lambda: Column('FiscalCurrentMonthEnd', True, 140))
-    fiscal_current_quarter_start = field(default_factory=lambda: Column(
+    fiscal_current_quarter_start: Column = field(default_factory=lambda: Column(
         'FiscalCurrentQuarterStart', True, 141))
-    fiscal_current_quarter_end = field(
+    fiscal_current_quarter_end: Column = field(
         default_factory=lambda: Column('FiscalCurrentQuarterEnd', True, 142))
-    fiscal_current_year_start = field(
+    fiscal_current_year_start: Column = field(
         default_factory=lambda: Column('FiscalCurrentYearStart', True, 143))
-    fiscal_current_year_end = field(
+    fiscal_current_year_end: Column = field(
         default_factory=lambda: Column('FiscalCurrentYearEnd', True, 144))
-    fiscal_prior_month_start = field(
+    fiscal_prior_month_start: Column = field(
         default_factory=lambda: Column('FiscalPriorMonthStart', True, 145))
-    fiscal_prior_month_end = field(
+    fiscal_prior_month_end: Column = field(
         default_factory=lambda: Column('FiscalPriorMonthEnd', True, 146))
-    fiscal_prior_quarter_start = field(
+    fiscal_prior_quarter_start: Column = field(
         default_factory=lambda: Column('FiscalPriorQuarterStart', True, 147))
-    fiscal_prior_quarter_end = field(
+    fiscal_prior_quarter_end: Column = field(
         default_factory=lambda: Column('FiscalPriorQuarterEnd', True, 148))
-    fiscal_prior_year_start = field(
+    fiscal_prior_year_start: Column = field(
         default_factory=lambda: Column('FiscalPriorYearStart', True, 149))
-    fiscal_prior_year_end = field(
+    fiscal_prior_year_end: Column = field(
         default_factory=lambda: Column('FiscalPriorYearEnd', True, 150))
-    fiscal_next_month_start = field(
+    fiscal_next_month_start: Column = field(
         default_factory=lambda: Column('FiscalNextMonthStart', True, 151))
-    fiscal_next_month_end = field(
+    fiscal_next_month_end: Column = field(
         default_factory=lambda: Column('FiscalNextMonthEnd', True, 152))
-    fiscal_next_quarter_start = field(
+    fiscal_next_quarter_start: Column = field(
         default_factory=lambda: Column('FiscalNextQuarterStart', True, 153))
-    fiscal_next_quarter_end = field(
+    fiscal_next_quarter_end: Column = field(
         default_factory=lambda: Column('FiscalNextQuarterEnd', True, 154))
-    fiscal_next_year_start = field(
+    fiscal_next_year_start: Column = field(
         default_factory=lambda: Column('FiscalNextYearStart', True, 155))
-    fiscal_next_year_end = field(
+    fiscal_next_year_end: Column = field(
         default_factory=lambda: Column('FiscalNextYearEnd', True, 156))
-    fiscal_monthly_burnup = field(
+    fiscal_monthly_burnup: Column = field(
         default_factory=lambda: Column('FiscalMonthlyBurnup', True, 157))
-    fiscal_quarterly_burnup = field(
+    fiscal_quarterly_burnup: Column = field(
         default_factory=lambda: Column('FiscalQuarterlyBurnup', True, 158))
-    fiscal_yearly_burnup = field(
+    fiscal_yearly_burnup: Column = field(
         default_factory=lambda: Column('FiscalYearlyBurnup', True, 159))
 
 
@@ -762,145 +773,148 @@ class DimDateConfig:
 
 @dataclass(frozen=True)
 class DimFiscalMonthColumns:
-    month_start_key = field(
+    month_start_key: Column = field(
         default_factory=lambda: Column('MonthStartKey', True, 0))
-    month_end_key = field(
+    month_end_key: Column = field(
         default_factory=lambda: Column('MonthEndKey', True, 1))
-    month_start_date = field(
+    month_start_date: Column = field(
         default_factory=lambda: Column('MonthStartDate', True, 2))
-    month_end_date = field(
+    month_end_date: Column = field(
         default_factory=lambda: Column('MonthEndDate', True, 3))
-    month_start_iso_date_name = field(
+    month_start_iso_date_name: Column = field(
         default_factory=lambda: Column('MonthStartISODateName', True, 4))
-    month_end_iso_date_name = field(
+    month_end_iso_date_name: Column = field(
         default_factory=lambda: Column('MonthEndISODateName', True, 5))
-    month_start_american_date_name = field(default_factory=lambda: Column(
+    month_start_american_date_name: Column = field(default_factory=lambda: Column(
         'MonthStartAmericanDateName', True, 6))
-    month_end_american_date_name = field(
+    month_end_american_date_name: Column = field(
         default_factory=lambda: Column('MonthEndAmericanDateName', True, 7))
-    month_name = field(default_factory=lambda: Column('MonthName', True, 8))
-    month_abbrev = field(
+    month_name: Column = field(
+        default_factory=lambda: Column('MonthName', True, 8))
+    month_abbrev: Column = field(
         default_factory=lambda: Column('MonthAbbrev', True, 9))
-    month_start_year_week_name = field(
+    month_start_year_week_name: Column = field(
         default_factory=lambda: Column('MonthStartYearWeekName', True, 10))
-    month_end_year_week_name = field(
+    month_end_year_week_name: Column = field(
         default_factory=lambda: Column('MonthEndYearWeekName', True, 11))
-    year_month_name = field(
+    year_month_name: Column = field(
         default_factory=lambda: Column('YearMonthName', True, 12))
-    month_year_name = field(
+    month_year_name: Column = field(
         default_factory=lambda: Column('MonthYearName', True, 13))
-    year_quarter_name = field(
+    year_quarter_name: Column = field(
         default_factory=lambda: Column('YearQuarterName', True, 14))
-    year = field(default_factory=lambda: Column('Year', True, 15))
-    month_start_year_week = field(
+    year: Column = field(default_factory=lambda: Column('Year', True, 15))
+    month_start_year_week: Column = field(
         default_factory=lambda: Column('MonthStartYearWeek', True, 16))
-    month_end_year_week = field(
+    month_end_year_week: Column = field(
         default_factory=lambda: Column('MonthEndYearWeek', True, 17))
-    year_month = field(default_factory=lambda: Column('YearMonth', True, 18))
-    year_quarter = field(
+    year_month: Column = field(
+        default_factory=lambda: Column('YearMonth', True, 18))
+    year_quarter: Column = field(
         default_factory=lambda: Column('YearQuarter', True, 19))
-    month_start_day_of_quarter = field(
+    month_start_day_of_quarter: Column = field(
         default_factory=lambda: Column('MonthStartDayOfQuarter', True, 20))
-    month_end_day_of_quarter = field(
+    month_end_day_of_quarter: Column = field(
         default_factory=lambda: Column('MonthEndDayOfQuarter', True, 21))
-    month_start_day_of_year = field(
+    month_start_day_of_year: Column = field(
         default_factory=lambda: Column('MonthStartDayOfYear', True, 22))
-    month_end_day_of_year = field(
+    month_end_day_of_year: Column = field(
         default_factory=lambda: Column('MonthEndDayOfYear', True, 23))
-    month_start_week_of_quarter = field(
+    month_start_week_of_quarter: Column = field(
         default_factory=lambda: Column('MonthStartWeekOfQuarter', True, 24))
-    month_end_week_of_quarter = field(
+    month_end_week_of_quarter: Column = field(
         default_factory=lambda: Column('MonthEndWeekOfQuarter', True, 25))
-    month_start_week_of_year = field(
+    month_start_week_of_year: Column = field(
         default_factory=lambda: Column('MonthStartWeekOfYear', True, 26))
-    month_end_week_of_year = field(
+    month_end_week_of_year: Column = field(
         default_factory=lambda: Column('MonthEndWeekOfYear', True, 27))
-    month_of_quarter = field(
+    month_of_quarter: Column = field(
         default_factory=lambda: Column('MonthOfQuarter', True, 28))
-    quarter = field(default_factory=lambda: Column('Quarter', True, 29))
-    days_in_month = field(
+    quarter: Column = field(
+        default_factory=lambda: Column('Quarter', True, 29))
+    days_in_month: Column = field(
         default_factory=lambda: Column('DaysInMonth', True, 30))
-    days_in_quarter = field(
+    days_in_quarter: Column = field(
         default_factory=lambda: Column('DaysInQuarter', True, 31))
-    days_in_year = field(
+    days_in_year: Column = field(
         default_factory=lambda: Column('DaysInYear', True, 32))
-    current_month_flag = field(
+    current_month_flag: Column = field(
         default_factory=lambda: Column('CurrentMonthFlag', True, 33))
-    prior_month_flag = field(
+    prior_month_flag: Column = field(
         default_factory=lambda: Column('PriorMonthFlag', True, 34))
-    next_month_flag = field(
+    next_month_flag: Column = field(
         default_factory=lambda: Column('NextMonthFlag', True, 35))
-    current_quarter_flag = field(
+    current_quarter_flag: Column = field(
         default_factory=lambda: Column('CurrentQuarterFlag', True, 36))
-    prior_quarter_flag = field(
+    prior_quarter_flag: Column = field(
         default_factory=lambda: Column('PriorQuarterFlag', True, 37))
-    next_quarter_flag = field(
+    next_quarter_flag: Column = field(
         default_factory=lambda: Column('NextQuarterFlag', True, 38))
-    current_year_flag = field(
+    current_year_flag: Column = field(
         default_factory=lambda: Column('CurrentYearFlag', True, 39))
-    prior_year_flag = field(
+    prior_year_flag: Column = field(
         default_factory=lambda: Column('PriorYearFlag', True, 40))
-    next_year_flag = field(
+    next_year_flag: Column = field(
         default_factory=lambda: Column('NextYearFlag', True, 41))
-    first_day_of_month_flag = field(
+    first_day_of_month_flag: Column = field(
         default_factory=lambda: Column('FirstDayOfMonthFlag', True, 42))
-    last_day_of_month_flag = field(
+    last_day_of_month_flag: Column = field(
         default_factory=lambda: Column('LastDayOfMonthFlag', True, 43))
-    first_day_of_quarter_flag = field(
+    first_day_of_quarter_flag: Column = field(
         default_factory=lambda: Column('FirstDayOfQuarterFlag', True, 44))
-    last_day_of_quarter_flag = field(
+    last_day_of_quarter_flag: Column = field(
         default_factory=lambda: Column('LastDayOfQuarterFlag', True, 45))
-    first_day_of_year_flag = field(
+    first_day_of_year_flag: Column = field(
         default_factory=lambda: Column('FirstDayOfYearFlag', True, 46))
-    last_day_of_year_flag = field(
+    last_day_of_year_flag: Column = field(
         default_factory=lambda: Column('LastDayOfYearFlag', True, 47))
-    month_start_fraction_of_quarter = field(default_factory=lambda: Column(
+    month_start_fraction_of_quarter: Column = field(default_factory=lambda: Column(
         'MonthStartFractionOfQuarter', True, 48))
-    month_end_fraction_of_quarter = field(default_factory=lambda: Column(
+    month_end_fraction_of_quarter: Column = field(default_factory=lambda: Column(
         'MonthEndFractionOfQuarter', True, 49))
-    month_start_fraction_of_year = field(
+    month_start_fraction_of_year: Column = field(
         default_factory=lambda: Column('MonthStartFractionOfYear', True, 50))
-    month_end_fraction_of_year = field(
+    month_end_fraction_of_year: Column = field(
         default_factory=lambda: Column('MonthEndFractionOfYear', True, 51))
-    month_start_current_quarter_start = field(default_factory=lambda: Column(
+    month_start_current_quarter_start: Column = field(default_factory=lambda: Column(
         'MonthStartCurrentQuarterStart', True, 52))
-    month_start_current_quarter_end = field(default_factory=lambda: Column(
+    month_start_current_quarter_end: Column = field(default_factory=lambda: Column(
         'MonthStartCurrentQuarterEnd', True, 53))
-    month_start_current_year_start = field(default_factory=lambda: Column(
+    month_start_current_year_start: Column = field(default_factory=lambda: Column(
         'MonthStartCurrentYearStart', True, 54))
-    month_start_current_year_end = field(
+    month_start_current_year_end: Column = field(
         default_factory=lambda: Column('MonthStartCurrentYearEnd', True, 55))
-    month_start_prior_month_start = field(default_factory=lambda: Column(
+    month_start_prior_month_start: Column = field(default_factory=lambda: Column(
         'MonthStartPriorMonthStart', True, 56))
-    month_start_prior_month_end = field(
+    month_start_prior_month_end: Column = field(
         default_factory=lambda: Column('MonthStartPriorMonthEnd', True, 57))
-    month_start_prior_quarter_start = field(default_factory=lambda: Column(
+    month_start_prior_quarter_start: Column = field(default_factory=lambda: Column(
         'MonthStartPriorQuarterStart', True, 58))
-    month_start_prior_quarter_end = field(default_factory=lambda: Column(
+    month_start_prior_quarter_end: Column = field(default_factory=lambda: Column(
         'MonthStartPriorQuarterEnd', True, 59))
-    month_start_prior_year_start = field(
+    month_start_prior_year_start: Column = field(
         default_factory=lambda: Column('MonthStartPriorYearStart', True, 60))
-    month_start_prior_year_end = field(
+    month_start_prior_year_end: Column = field(
         default_factory=lambda: Column('MonthStartPriorYearEnd', True, 61))
-    month_start_next_month_start = field(
+    month_start_next_month_start: Column = field(
         default_factory=lambda: Column('MonthStartNextMonthStart', True, 62))
-    month_start_next_month_end = field(
+    month_start_next_month_end: Column = field(
         default_factory=lambda: Column('MonthStartNextMonthEnd', True, 63))
-    month_start_next_quarter_start = field(default_factory=lambda: Column(
+    month_start_next_quarter_start: Column = field(default_factory=lambda: Column(
         'MonthStartNextQuarterStart', True, 64))
-    month_start_next_quarter_end = field(
+    month_start_next_quarter_end: Column = field(
         default_factory=lambda: Column('MonthStartNextQuarterEnd', True, 65))
-    month_start_next_year_start = field(
+    month_start_next_year_start: Column = field(
         default_factory=lambda: Column('MonthStartNextYearStart', True, 66))
-    month_start_next_year_end = field(
+    month_start_next_year_end: Column = field(
         default_factory=lambda: Column('MonthStartNextYearEnd', True, 67))
-    month_start_quarterly_burnup = field(default_factory=lambda: Column(
+    month_start_quarterly_burnup: Column = field(default_factory=lambda: Column(
         'MonthStartQuarterlyBurnup', True, 68))
-    month_end_quarterly_burnup = field(
+    month_end_quarterly_burnup: Column = field(
         default_factory=lambda: Column('MonthEndQuarterlyBurnup', True, 69))
-    month_start_yearly_burnup = field(
+    month_start_yearly_burnup: Column = field(
         default_factory=lambda: Column('MonthStartYearlyBurnup', True, 70))
-    month_end_yearly_burnup = field(
+    month_end_yearly_burnup: Column = field(
         default_factory=lambda: Column('MonthEndYearlyBurnup', True, 71))
 
 
@@ -930,145 +944,148 @@ class DimFiscalMonthConfig:
 
 @dataclass(frozen=True)
 class DimCalendarMonthColumns:
-    month_start_key = field(
+    month_start_key: Column = field(
         default_factory=lambda: Column('MonthStartKey', True, 0))
-    month_end_key = field(
+    month_end_key: Column = field(
         default_factory=lambda: Column('MonthEndKey', True, 1))
-    month_start_date = field(
+    month_start_date: Column = field(
         default_factory=lambda: Column('MonthStartDate', True, 2))
-    month_end_date = field(
+    month_end_date: Column = field(
         default_factory=lambda: Column('MonthEndDate', True, 3))
-    month_start_iso_date_name = field(
+    month_start_iso_date_name: Column = field(
         default_factory=lambda: Column('MonthStartISODateName', True, 4))
-    month_end_iso_date_name = field(
+    month_end_iso_date_name: Column = field(
         default_factory=lambda: Column('MonthEndISODateName', True, 5))
-    month_start_american_date_name = field(default_factory=lambda: Column(
+    month_start_american_date_name: Column = field(default_factory=lambda: Column(
         'MonthStartAmericanDateName', True, 6))
-    month_end_american_date_name = field(
+    month_end_american_date_name: Column = field(
         default_factory=lambda: Column('MonthEndAmericanDateName', True, 7))
-    month_name = field(default_factory=lambda: Column('MonthName', True, 8))
-    month_abbrev = field(
+    month_name: Column = field(
+        default_factory=lambda: Column('MonthName', True, 8))
+    month_abbrev: Column = field(
         default_factory=lambda: Column('MonthAbbrev', True, 9))
-    month_start_year_week_name = field(
+    month_start_year_week_name: Column = field(
         default_factory=lambda: Column('MonthStartYearWeekName', True, 10))
-    month_end_year_week_name = field(
+    month_end_year_week_name: Column = field(
         default_factory=lambda: Column('MonthEndYearWeekName', True, 11))
-    year_month_name = field(
+    year_month_name: Column = field(
         default_factory=lambda: Column('YearMonthName', True, 12))
-    month_year_name = field(
+    month_year_name: Column = field(
         default_factory=lambda: Column('MonthYearName', True, 13))
-    year_quarter_name = field(
+    year_quarter_name: Column = field(
         default_factory=lambda: Column('YearQuarterName', True, 14))
-    year = field(default_factory=lambda: Column('Year', True, 15))
-    month_start_year_week = field(
+    year: Column = field(default_factory=lambda: Column('Year', True, 15))
+    month_start_year_week: Column = field(
         default_factory=lambda: Column('MonthStartYearWeek', True, 16))
-    month_end_year_week = field(
+    month_end_year_week: Column = field(
         default_factory=lambda: Column('MonthEndYearWeek', True, 17))
-    year_month = field(default_factory=lambda: Column('YearMonth', True, 18))
-    year_quarter = field(
+    year_month: Column = field(
+        default_factory=lambda: Column('YearMonth', True, 18))
+    year_quarter: Column = field(
         default_factory=lambda: Column('YearQuarter', True, 19))
-    month_start_day_of_quarter = field(
+    month_start_day_of_quarter: Column = field(
         default_factory=lambda: Column('MonthStartDayOfQuarter', True, 20))
-    month_end_day_of_quarter = field(
+    month_end_day_of_quarter: Column = field(
         default_factory=lambda: Column('MonthEndDayOfQuarter', True, 21))
-    month_start_day_of_year = field(
+    month_start_day_of_year: Column = field(
         default_factory=lambda: Column('MonthStartDayOfYear', True, 22))
-    month_end_day_of_year = field(
+    month_end_day_of_year: Column = field(
         default_factory=lambda: Column('MonthEndDayOfYear', True, 23))
-    month_start_week_of_quarter = field(
+    month_start_week_of_quarter: Column = field(
         default_factory=lambda: Column('MonthStartWeekOfQuarter', True, 24))
-    month_end_week_of_quarter = field(
+    month_end_week_of_quarter: Column = field(
         default_factory=lambda: Column('MonthEndWeekOfQuarter', True, 25))
-    month_start_week_of_year = field(
+    month_start_week_of_year: Column = field(
         default_factory=lambda: Column('MonthStartWeekOfYear', True, 26))
-    month_end_week_of_year = field(
+    month_end_week_of_year: Column = field(
         default_factory=lambda: Column('MonthEndWeekOfYear', True, 27))
-    month_of_quarter = field(
+    month_of_quarter: Column = field(
         default_factory=lambda: Column('MonthOfQuarter', True, 28))
-    quarter = field(default_factory=lambda: Column('Quarter', True, 29))
-    days_in_month = field(
+    quarter: Column = field(
+        default_factory=lambda: Column('Quarter', True, 29))
+    days_in_month: Column = field(
         default_factory=lambda: Column('DaysInMonth', True, 30))
-    days_in_quarter = field(
+    days_in_quarter: Column = field(
         default_factory=lambda: Column('DaysInQuarter', True, 31))
-    days_in_year = field(
+    days_in_year: Column = field(
         default_factory=lambda: Column('DaysInYear', True, 32))
-    current_month_flag = field(
+    current_month_flag: Column = field(
         default_factory=lambda: Column('CurrentMonthFlag', True, 33))
-    prior_month_flag = field(
+    prior_month_flag: Column = field(
         default_factory=lambda: Column('PriorMonthFlag', True, 34))
-    next_month_flag = field(
+    next_month_flag: Column = field(
         default_factory=lambda: Column('NextMonthFlag', True, 35))
-    current_quarter_flag = field(
+    current_quarter_flag: Column = field(
         default_factory=lambda: Column('CurrentQuarterFlag', True, 36))
-    prior_quarter_flag = field(
+    prior_quarter_flag: Column = field(
         default_factory=lambda: Column('PriorQuarterFlag', True, 37))
-    next_quarter_flag = field(
+    next_quarter_flag: Column = field(
         default_factory=lambda: Column('NextQuarterFlag', True, 38))
-    current_year_flag = field(
+    current_year_flag: Column = field(
         default_factory=lambda: Column('CurrentYearFlag', True, 39))
-    prior_year_flag = field(
+    prior_year_flag: Column = field(
         default_factory=lambda: Column('PriorYearFlag', True, 40))
-    next_year_flag = field(
+    next_year_flag: Column = field(
         default_factory=lambda: Column('NextYearFlag', True, 41))
-    first_day_of_month_flag = field(
+    first_day_of_month_flag: Column = field(
         default_factory=lambda: Column('FirstDayOfMonthFlag', True, 42))
-    last_day_of_month_flag = field(
+    last_day_of_month_flag: Column = field(
         default_factory=lambda: Column('LastDayOfMonthFlag', True, 43))
-    first_day_of_quarter_flag = field(
+    first_day_of_quarter_flag: Column = field(
         default_factory=lambda: Column('FirstDayOfQuarterFlag', True, 44))
-    last_day_of_quarter_flag = field(
+    last_day_of_quarter_flag: Column = field(
         default_factory=lambda: Column('LastDayOfQuarterFlag', True, 45))
-    first_day_of_year_flag = field(
+    first_day_of_year_flag: Column = field(
         default_factory=lambda: Column('FirstDayOfYearFlag', True, 46))
-    last_day_of_year_flag = field(
+    last_day_of_year_flag: Column = field(
         default_factory=lambda: Column('LastDayOfYearFlag', True, 47))
-    month_start_fraction_of_quarter = field(default_factory=lambda: Column(
+    month_start_fraction_of_quarter: Column = field(default_factory=lambda: Column(
         'MonthStartFractionOfQuarter', True, 48))
-    month_end_fraction_of_quarter = field(default_factory=lambda: Column(
+    month_end_fraction_of_quarter: Column = field(default_factory=lambda: Column(
         'MonthEndFractionOfQuarter', True, 49))
-    month_start_fraction_of_year = field(
+    month_start_fraction_of_year: Column = field(
         default_factory=lambda: Column('MonthStartFractionOfYear', True, 50))
-    month_end_fraction_of_year = field(
+    month_end_fraction_of_year: Column = field(
         default_factory=lambda: Column('MonthEndFractionOfYear', True, 51))
-    month_start_current_quarter_start = field(default_factory=lambda: Column(
+    month_start_current_quarter_start: Column = field(default_factory=lambda: Column(
         'MonthStartCurrentQuarterStart', True, 52))
-    month_start_current_quarter_end = field(default_factory=lambda: Column(
+    month_start_current_quarter_end: Column = field(default_factory=lambda: Column(
         'MonthStartCurrentQuarterEnd', True, 53))
-    month_start_current_year_start = field(default_factory=lambda: Column(
+    month_start_current_year_start: Column = field(default_factory=lambda: Column(
         'MonthStartCurrentYearStart', True, 54))
-    month_start_current_year_end = field(
+    month_start_current_year_end: Column = field(
         default_factory=lambda: Column('MonthStartCurrentYearEnd', True, 55))
-    month_start_prior_month_start = field(default_factory=lambda: Column(
+    month_start_prior_month_start: Column = field(default_factory=lambda: Column(
         'MonthStartPriorMonthStart', True, 56))
-    month_start_prior_month_end = field(
+    month_start_prior_month_end: Column = field(
         default_factory=lambda: Column('MonthStartPriorMonthEnd', True, 57))
-    month_start_prior_quarter_start = field(default_factory=lambda: Column(
+    month_start_prior_quarter_start: Column = field(default_factory=lambda: Column(
         'MonthStartPriorQuarterStart', True, 58))
-    month_start_prior_quarter_end = field(default_factory=lambda: Column(
+    month_start_prior_quarter_end: Column = field(default_factory=lambda: Column(
         'MonthStartPriorQuarterEnd', True, 59))
-    month_start_prior_year_start = field(
+    month_start_prior_year_start: Column = field(
         default_factory=lambda: Column('MonthStartPriorYearStart', True, 60))
-    month_start_prior_year_end = field(
+    month_start_prior_year_end: Column = field(
         default_factory=lambda: Column('MonthStartPriorYearEnd', True, 61))
-    month_start_next_month_start = field(
+    month_start_next_month_start: Column = field(
         default_factory=lambda: Column('MonthStartNextMonthStart', True, 62))
-    month_start_next_month_end = field(
+    month_start_next_month_end: Column = field(
         default_factory=lambda: Column('MonthStartNextMonthEnd', True, 63))
-    month_start_next_quarter_start = field(default_factory=lambda: Column(
+    month_start_next_quarter_start: Column = field(default_factory=lambda: Column(
         'MonthStartNextQuarterStart', True, 64))
-    month_start_next_quarter_end = field(
+    month_start_next_quarter_end: Column = field(
         default_factory=lambda: Column('MonthStartNextQuarterEnd', True, 65))
-    month_start_next_year_start = field(
+    month_start_next_year_start: Column = field(
         default_factory=lambda: Column('MonthStartNextYearStart', True, 66))
-    month_start_next_year_end = field(
+    month_start_next_year_end: Column = field(
         default_factory=lambda: Column('MonthStartNextYearEnd', True, 67))
-    month_start_quarterly_burnup = field(default_factory=lambda: Column(
+    month_start_quarterly_burnup: Column = field(default_factory=lambda: Column(
         'MonthStartQuarterlyBurnup', True, 68))
-    month_end_quarterly_burnup = field(
+    month_end_quarterly_burnup: Column = field(
         default_factory=lambda: Column('MonthEndQuarterlyBurnup', True, 69))
-    month_start_yearly_burnup = field(
+    month_start_yearly_burnup: Column = field(
         default_factory=lambda: Column('MonthStartYearlyBurnup', True, 70))
-    month_end_yearly_burnup = field(
+    month_end_yearly_burnup: Column = field(
         default_factory=lambda: Column('MonthEndYearlyBurnup', True, 71))
 
 
@@ -1098,7 +1115,8 @@ class DimCalendarMonthConfig:
 
 @dataclass
 class Config:
-    outdir_base: Path = field(default_factory=lambda: Path('../output'))
+    output_dir: Path = field(default_factory=lambda: Path('./output'))
+    clear_output_dir: bool = False
     date_range: DateRange = field(default_factory=DateRange)
     fiscal: FiscalConfig = field(default_factory=FiscalConfig)
     time_zone: str = "Mountain Standard Time"
