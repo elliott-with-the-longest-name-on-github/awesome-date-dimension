@@ -630,7 +630,7 @@ class DimDateColumns:
         default_factory=lambda: Column('FiscalMonthName', True, 100))
     fiscal_month_abbrev: Column = field(
         default_factory=lambda: Column('FiscalMonthAbbrev', True, 101))
-    fiscal_year_name: Column = field(default_factory=lambda: Column(
+    fiscal_year_week_name: Column = field(default_factory=lambda: Column(
         'FiscalYearWeekName', True, 102))
     fiscal_year_month_name: Column = field(
         default_factory=lambda: Column('FiscalYearMonthName', True, 103))

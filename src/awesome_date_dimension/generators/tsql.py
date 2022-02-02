@@ -4,6 +4,7 @@ import shutil
 from stat import FILE_ATTRIBUTE_READONLY
 from typing import Any, Iterable
 
+from ._tsql_templates.dim_date_insert_template import dim_date_insert_template
 from ._tsql_templates.holidays_insert_template import holidays_insert_template
 from ._tsql_templates.holiday_types_insert_template import holiday_types_insert_template
 from ..config import Column, Config, DimDateColumns, DimFiscalMonthColumns, DimCalendarMonthColumns, HolidayConfig
@@ -161,7 +162,7 @@ class TSQLDimDateColumns():
             TSQLColumn.from_column('varchar(3)', False,
                                    columns.fiscal_month_abbrev),
             TSQLColumn.from_column('varchar(8)', False,
-                                   columns.fiscal_year_name),
+                                   columns.fiscal_year_week_name),
             TSQLColumn.from_column('varchar(7)', False,
                                    columns.fiscal_year_month_name),
             TSQLColumn.from_column('varchar(8)', False,
@@ -711,7 +712,12 @@ class TSQLGenerator():
         return file_no
 
     def _generate_dim_date_build_scripts(self, file_no: int, base_path: Path) -> int:
-        # raise NotImplementedError()
+        scriptdef = dim_date_insert_template(self._config)
+        file_path = base_path / \
+            TSQLGenerator._get_sql_filename(
+                file_no, self._config.dim_date.table_name)
+        TSQLGenerator._assert_filepath_available(file_path)
+        file_path.write_text(scriptdef)
         pass
 
     def _generate_dim_fiscal_month_build_scripts(self, file_no: int, base_path: Path) -> int:
