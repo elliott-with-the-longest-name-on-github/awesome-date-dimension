@@ -277,10 +277,10 @@ class TSQLDimDateColumns():
         if holiday_config.generate_holidays:
             for t in holiday_config.holiday_types:
                 self._columns.append(TSQLColumn(
-                    f'{t.generated_column_prefix}HolidayFlag', True, idx, 'bit', False))
+                    f'{t.generated_column_prefix}{t.generated_flag_column_postfix}', True, idx, 'bit', False))
                 idx += 1
                 self._columns.append(TSQLColumn(
-                    f'{t.generated_column_prefix}HolidayName', True, idx, 'varchar(255)', True))
+                    f'{t.generated_column_prefix}{t.generated_name_column_postfix}', True, idx, 'varchar(255)', True))
                 idx += 1
 
 
@@ -425,7 +425,7 @@ class TSQLDimFiscalMonthColumns():
         if holiday_config.generate_holidays:
             for t in holiday_config.holiday_types:
                 self._columns.append(TSQLColumn(
-                    f'{t.generated_column_prefix}HolidaysInMonth', True, idx, 'int', False))
+                    f'{t.generated_column_prefix}{t.generated_monthly_count_column_postfix}', True, idx, 'int', False))
                 idx += 1
 
 
@@ -570,7 +570,7 @@ class TSQLDimCalendarMonthColumns():
         if holiday_config.generate_holidays:
             for t in holiday_config.holiday_types:
                 self._columns.append(TSQLColumn(
-                    f'{t.generated_column_prefix}HolidaysInMonth', True, idx, 'int', False))
+                    f'{t.generated_column_prefix}{t.generated_monthly_count_column_postfix}', True, idx, 'int', False))
                 idx += 1
 
 
@@ -644,8 +644,8 @@ class TSQLGenerator():
             # Holiday Types
             ht_tabledef = [
                 f'CREATE TABLE {self._config.holidays.holiday_types_schema_name}.{self._config.holidays.holiday_types_table_name} (',
-                '  HolidayTypeKey int IDENTITY(1,1) NOT NULL,',
-                '  HolidayTypeName varchar(255) NOT NULL',
+                f'  {self._config.holidays.holiday_types_columns.holiday_type_key.name} int IDENTITY(1,1) NOT NULL,',
+                f'  {self._config.holidays.holiday_types_columns.holiday_type_name.name} varchar(255) UNIQUE NOT NULL',
                 ');',
             ]
             file_path = base_path / \
@@ -659,9 +659,9 @@ class TSQLGenerator():
             # Holidays
             h_tabledef = [
                 f'CREATE TABLE {self._config.holidays.holidays_schema_name}.{self._config.holidays.holidays_table_name} (',
-                '  DateKey int NOT NULL,',
-                '  HolidayName varchar(255) NOT NULL,',
-                '  HolidayTypeKey int NOT NULL',
+                f'  {self._config.holidays.holidays_columns.date_key.name} int NOT NULL,',
+                f'  {self._config.holidays.holidays_columns.holiday_name.name} varchar(255) NOT NULL,',
+                f'  {self._config.holidays.holidays_columns.holiday_type_key.name} int NOT NULL',
                 ');',
             ]
             file_path = base_path / \
@@ -688,7 +688,7 @@ class TSQLGenerator():
     def _generate_holiday_type_build_script(self, file_no: int, base_path: Path) -> int:
         cfg = self._config.holidays
         scriptdef = holiday_types_insert_template(
-            cfg.holiday_types_schema_name, cfg.holiday_types_table_name, cfg.holiday_types)
+            cfg.holiday_types_schema_name, cfg.holiday_types_table_name, cfg.holiday_types_columns.holiday_type_name.name, cfg.holiday_types)
         file_path = base_path / \
             TSQLGenerator._get_sql_filename(
                 file_no, cfg.holiday_types_table_name)

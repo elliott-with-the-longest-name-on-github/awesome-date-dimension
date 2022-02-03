@@ -13,25 +13,27 @@ def dim_date_insert_template(config: Config) -> str:
         holiday_join.append(
             f'    LEFT OUTER JOIN {config.holidays.holidays_schema_name}.{config.holidays.holidays_table_name} AS h{i} -- {t.name}')
         holiday_join.append(
-            f"      ON fh.DateKey = h{i}.DateKey AND h{i}.HolidayTypeKey = (SELECT HolidayTypeKey FROM {config.holidays.holiday_types_schema_name}.{config.holidays.holiday_types_table_name} WHERE HolidayTypeName = '{t.name}')")
+            f"      ON fh.DateKey = h{i}.{config.holidays.holidays_columns.date_key.name} AND h{i}.{config.holidays.holidays_columns.holiday_type_key.name} = (SELECT {config.holidays.holiday_types_columns.holiday_type_key.name} FROM {config.holidays.holiday_types_schema_name}.{config.holidays.holiday_types_table_name} WHERE {config.holidays.holiday_types_columns.holiday_type_name.name} = '{t.name}')")
         if t.included_in_business_day_calc:
-            business_day_list.append(f'      h{i}.DateKey IS NOT NULL')
+            business_day_list.append(
+                f'h{i}.{config.holidays.holidays_columns.date_key.name} IS NOT NULL')
 
         holiday_columndef.append(
-            f'      {t.generated_column_prefix}HolidayFlag = IIF(')
-        holiday_columndef.append(f'        h{i}.DateKey IS NOT NULL,')
+            f'      {t.generated_column_prefix}{t.generated_flag_column_postfix} = IIF(')
+        holiday_columndef.append(
+            f'        h{i}.{config.holidays.holidays_columns.date_key.name} IS NOT NULL,')
         holiday_columndef.append(f'        1,')
         holiday_columndef.append(f'        0')
         holiday_columndef.append(f'      ),')
         holiday_columndef.append('')
         holiday_columndef.append(
-            f'      {t.generated_column_prefix}HolidayName = h{i}.HolidayName,')
+            f'      {t.generated_column_prefix}{t.generated_name_column_postfix} = h{i}.{config.holidays.holidays_columns.holiday_name.name},')
         holiday_columndef.append('')
 
         holiday_column_list.append(
-            f'  {t.generated_column_prefix}HolidayFlag,')
+            f'  {t.generated_column_prefix}{t.generated_flag_column_postfix},')
         holiday_column_list.append(
-            f'  {t.generated_column_prefix}HolidayName,')
+            f'  {t.generated_column_prefix}{t.generated_name_column_postfix},')
 
     holiday_join = '\n'.join(holiday_join)
     business_day_clause = '\n'.join(business_day_list) + '\n      OR '

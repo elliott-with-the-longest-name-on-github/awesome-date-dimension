@@ -31,7 +31,10 @@ class FiscalConfig:
 class HolidayType:
     name: str
     generated_column_prefix: str
-    included_in_business_day_calc: bool
+    generated_flag_column_postfix: str = 'HolidayFlag'
+    generated_name_column_postfix: str = 'HolidayName'
+    generated_monthly_count_column_postfix: str = 'HolidaysInMonth'
+    included_in_business_day_calc: bool = False
 
 
 @dataclass(frozen=True)
@@ -48,7 +51,8 @@ class HolidayCalendar:
 
 def default_company_holidays() -> HolidayCalendar:
     return HolidayCalendar(
-        HolidayType('Company Holiday', 'Company', True),
+        HolidayType('Company Holiday', 'Company',
+                    included_in_business_day_calc=True),
         [
             Holiday('New Year''s Day', datetime.fromisoformat('2012-01-02')),
             Holiday('Martin Luther King, Jr. Day',
@@ -221,7 +225,7 @@ def default_company_holidays() -> HolidayCalendar:
 
 def default_us_public_holidays() -> HolidayCalendar:
     return HolidayCalendar(
-        HolidayType('US Public Holiday', 'USPublic', False),
+        HolidayType('US Public Holiday', 'USPublic'),
         [
             Holiday('New Year''s Day', datetime.fromisoformat('2012-01-02')),
             Holiday('Martin Luther King, Jr. Day',
@@ -395,12 +399,47 @@ def default_us_public_holidays() -> HolidayCalendar:
 
 
 @dataclass(frozen=True)
+class Column:
+    name: str
+    include: bool
+    sort_index: int
+
+
+@dataclass(frozen=True)
+class HolidayTypesColumns:
+    holiday_type_key: Column = field(
+        default_factory=lambda: Column('HolidayTypeKey', True, 0))
+    holiday_type_name: Column = field(
+        default_factory=lambda: Column('HolidayTypeName', True, 1))
+
+    def __post_init__(self):
+        assert self.holiday_type_key.include and self.holiday_type_name.include, 'all HolidayTypes columns must be included.'
+
+
+@dataclass(frozen=True)
+class HolidaysColumns:
+    date_key: Column = field(
+        default_factory=lambda: Column('DateKey', True, 0))
+    holiday_name: Column = field(
+        default_factory=lambda: Column('HolidayName', True, 1))
+    holiday_type_key: Column = field(
+        default_factory=lambda: Column('HolidayTypeKey', True, 2))
+
+    def __post_init__(self):
+        assert self.date_key.include and self.holiday_name.include and self.holiday_type_key.include, 'all Holidays columns must be included.'
+
+
+@dataclass(frozen=True)
 class HolidayConfig:
     generate_holidays: bool = True
     holiday_types_schema_name: str = 'integration'
     holiday_types_table_name: str = 'manual_HolidayTypes'
+    holiday_types_columns: HolidayTypesColumns = field(
+        default_factory=lambda: HolidayTypesColumns())
     holidays_schema_name: str = 'integration'
     holidays_table_name: str = 'manual_Holidays'
+    holidays_columns: HolidaysColumns = field(
+        default_factory=lambda: HolidaysColumns())
     holiday_calendars: list[HolidayCalendar] = field(default_factory=lambda: [
         default_company_holidays(), default_us_public_holidays()])
     holiday_types: list[HolidayType] = field(init=False, default_factory=list)
@@ -413,17 +452,10 @@ class HolidayConfig:
             holiday_type_prefixes = [
                 t.generated_column_prefix for t in holiday_types]
             assert len(holiday_type_names) == len(set(holiday_type_names)
-                                                  ), 'detected a duplicate HolidayType name in Holiday. This would create multiple columns with the same name, which is not allowed.'
+                                                  ), 'detected a duplicate HolidayType name in HolidayConfig. This would create multiple columns with the same name, which is not allowed.'
             assert len(holiday_type_prefixes) == len(set(holiday_type_prefixes)
-                                                     ), 'detected a duplicate HolidayTypePrefix in Holiday. This would create multiple columns with the same name, which is not allowed.'
+                                                     ), 'detected a duplicate HolidayTypePrefix in HolidayConfig. This would create multiple columns with the same name, which is not allowed.'
             object.__setattr__(self, 'holiday_types', holiday_types)
-
-
-@dataclass(frozen=True)
-class Column:
-    name: str
-    include: bool
-    sort_index: int
 
 
 @dataclass(frozen=True)
