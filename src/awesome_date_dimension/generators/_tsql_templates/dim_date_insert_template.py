@@ -11,34 +11,42 @@ def dim_date_insert_template(config: Config) -> str:
     holiday_column_list = []
     for i, t in enumerate(config.holidays.holiday_types):
         holiday_join.append(
-            f'    LEFT OUTER JOIN {config.holidays.holidays_schema_name}.{config.holidays.holidays_table_name} AS h{i} -- {t.name}')
+            f"    LEFT OUTER JOIN {config.holidays.holidays_schema_name}.{config.holidays.holidays_table_name} AS h{i} -- {t.name}"
+        )
         holiday_join.append(
-            f"      ON fh.DateKey = h{i}.{config.holidays.holidays_columns.date_key.name} AND h{i}.{config.holidays.holidays_columns.holiday_type_key.name} = (SELECT {config.holidays.holiday_types_columns.holiday_type_key.name} FROM {config.holidays.holiday_types_schema_name}.{config.holidays.holiday_types_table_name} WHERE {config.holidays.holiday_types_columns.holiday_type_name.name} = '{t.name}')")
+            f"      ON fh.DateKey = h{i}.{config.holidays.holidays_columns.date_key.name} AND h{i}.{config.holidays.holidays_columns.holiday_type_key.name} = (SELECT {config.holidays.holiday_types_columns.holiday_type_key.name} FROM {config.holidays.holiday_types_schema_name}.{config.holidays.holiday_types_table_name} WHERE {config.holidays.holiday_types_columns.holiday_type_name.name} = '{t.name}')"
+        )
         if t.included_in_business_day_calc:
             business_day_list.append(
-                f'h{i}.{config.holidays.holidays_columns.date_key.name} IS NOT NULL')
+                f"h{i}.{config.holidays.holidays_columns.date_key.name} IS NOT NULL"
+            )
 
         holiday_columndef.append(
-            f'      {t.generated_column_prefix}{t.generated_flag_column_postfix} = IIF(')
+            f"      {t.generated_column_prefix}{t.generated_flag_column_postfix} = IIF("
+        )
         holiday_columndef.append(
-            f'        h{i}.{config.holidays.holidays_columns.date_key.name} IS NOT NULL,')
-        holiday_columndef.append(f'        1,')
-        holiday_columndef.append(f'        0')
-        holiday_columndef.append(f'      ),')
-        holiday_columndef.append('')
+            f"        h{i}.{config.holidays.holidays_columns.date_key.name} IS NOT NULL,"
+        )
+        holiday_columndef.append(f"        1,")
+        holiday_columndef.append(f"        0")
+        holiday_columndef.append(f"      ),")
+        holiday_columndef.append("")
         holiday_columndef.append(
-            f'      {t.generated_column_prefix}{t.generated_name_column_postfix} = h{i}.{config.holidays.holidays_columns.holiday_name.name},')
-        holiday_columndef.append('')
+            f"      {t.generated_column_prefix}{t.generated_name_column_postfix} = h{i}.{config.holidays.holidays_columns.holiday_name.name},"
+        )
+        holiday_columndef.append("")
 
         holiday_column_list.append(
-            f'  {t.generated_column_prefix}{t.generated_flag_column_postfix},')
+            f"  {t.generated_column_prefix}{t.generated_flag_column_postfix},"
+        )
         holiday_column_list.append(
-            f'  {t.generated_column_prefix}{t.generated_name_column_postfix},')
+            f"  {t.generated_column_prefix}{t.generated_name_column_postfix},"
+        )
 
-    holiday_join = '\n'.join(holiday_join)
-    business_day_clause = '\n'.join(business_day_list) + '\n      OR '
-    holiday_column_clause = '\n'.join(holiday_columndef)[:-2]
-    holiday_columns = '\n'.join(holiday_column_list)[:-1]
+    holiday_join = "\n".join(holiday_join)
+    business_day_clause = "\n".join(business_day_list) + "\n      OR "
+    holiday_column_clause = "\n".join(holiday_columndef)[:-2]
+    holiday_columns = "\n".join(holiday_column_list)[:-1]
     return f"""SET DATEFIRST 7;
 
 DECLARE @TodayInLocal date;
