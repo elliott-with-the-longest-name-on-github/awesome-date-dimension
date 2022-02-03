@@ -13,5 +13,5 @@ jobs:
       - uses: psf/black@stable
       - uses: isort/isort-action@master
         with: 
-          requirementsFiles: "requirements.txt"
+          requirementsFiles: "requirements.txt requirements-dev.txt"
           configuration: "--check-only --diff --profile black"
