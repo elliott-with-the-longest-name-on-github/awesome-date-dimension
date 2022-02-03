@@ -11,7 +11,7 @@ jobs:
         with:
           python-version: 3.8 
       - uses: psf/black@stable
-      - uses: isort/isort-action@master
+      - uses: jamescurtin/isort-action@master
         with: 
           requirementsFiles: "requirements.txt requirements-dev.txt"
           configuration: "--check-only --diff --profile black"
