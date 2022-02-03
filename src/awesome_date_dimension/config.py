@@ -1,7 +1,9 @@
 from dataclasses import asdict, dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, tzinfo
 from pathlib import Path
 from typing import Callable
+
+from pytz import timezone
 
 
 @dataclass(frozen=True)
@@ -1407,7 +1409,7 @@ class Config:
     clear_output_dir: bool = False
     date_range: DateRange = field(default_factory=DateRange)
     fiscal: FiscalConfig = field(default_factory=FiscalConfig)
-    time_zone: str = "Mountain Standard Time"
+    time_zone: tzinfo = field(default_factory=lambda: timezone("US/Mountain"))
     holidays: HolidayConfig = field(default_factory=HolidayConfig)
     dim_date: DimDateConfig = field(default_factory=DimDateConfig)
     dim_fiscal_month: DimFiscalMonthConfig = field(default_factory=DimFiscalMonthConfig)
