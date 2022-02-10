@@ -1,10 +1,15 @@
 import shutil
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from stat import FILE_ATTRIBUTE_READONLY
-from typing import Any, Iterable
+from typing import Iterable
 
-from ..config import (
+from ._internal.tsql_templates.dim_date_insert_template import dim_date_insert_template
+from ._internal.tsql_templates.holiday_types_insert_template import (
+    holiday_types_insert_template,
+)
+from ._internal.tsql_templates.holidays_insert_template import holidays_insert_template
+from ._internal.tsql_templates.table_setup_template import table_setup_template
+from .config import (
     Column,
     Config,
     DimCalendarMonthColumns,
@@ -12,10 +17,6 @@ from ..config import (
     DimFiscalMonthColumns,
     HolidayConfig,
 )
-from ._tsql_templates.dim_date_insert_template import dim_date_insert_template
-from ._tsql_templates.holiday_types_insert_template import holiday_types_insert_template
-from ._tsql_templates.holidays_insert_template import holidays_insert_template
-from ._tsql_templates.table_setup_template import table_setup_template
 
 
 @dataclass
