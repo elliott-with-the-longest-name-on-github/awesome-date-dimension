@@ -598,37 +598,39 @@ class TSQLGenerator:
 
     def _generate_dim_date_setup_scripts(self, file_no: int, base_path: Path) -> int:
         cfg = self._config.dim_date
-        file_path = base_path / TSQLGenerator._get_sql_filename(file_no, cfg.table_name)
-        TSQLGenerator._generate_table_setup_scripts(
-            cfg.table_schema, cfg.table_name, self._dim_date_columns, file_path
+        table_gen = lambda config: TSQLGenerator._get_table_definition(
+            cfg.table_schema, cfg.table_name, self._dim_date_columns
         )
-        return file_no + 1
+        return TSQLGenerator._generate_file(
+            file_no, cfg.table_name, base_path, self._config, table_gen
+        )
 
     def _generate_dim_fiscal_month_setup_scripts(
         self, file_no: int, base_path: Path
     ) -> int:
         cfg = self._config.dim_fiscal_month
-        file_path = base_path / TSQLGenerator._get_sql_filename(file_no, cfg.table_name)
-        TSQLGenerator._generate_table_setup_scripts(
-            cfg.table_schema, cfg.table_name, self._dim_fiscal_month_columns, file_path
+        table_gen = lambda config: TSQLGenerator._get_table_definition(
+            cfg.table_schema, cfg.table_name, self._dim_fiscal_month_columns
         )
-        return file_no + 1
+        return TSQLGenerator._generate_file(
+            file_no, cfg.table_name, base_path, self._config, table_gen
+        )
 
     def _generate_dim_calendar_month_setup_scripts(
         self, file_no: int, base_path: Path
     ) -> int:
         cfg = self._config.dim_calendar_month
-        file_path = base_path / TSQLGenerator._get_sql_filename(file_no, cfg.table_name)
-        TSQLGenerator._generate_table_setup_scripts(
-            cfg.table_schema,
-            cfg.table_name,
-            self._dim_calendar_month_columns,
-            file_path,
+        table_gen = lambda config: TSQLGenerator._get_table_definition(
+            cfg.table_schema, cfg.table_name, self._dim_calendar_month_columns
         )
-        return file_no + 1
+        return TSQLGenerator._generate_file(
+            file_no, cfg.table_name, base_path, self._config, table_gen
+        )
 
     def _generate_holiday_setup_scripts(self, file_no: int, base_path: Path) -> int:
         if self._config.holidays.generate_holidays:
+            # Honestly, not worth it to create templates for these since they're so simple.
+            # I'll take points off for "bad software", I suppose.
 
             # Holiday Types
             ht_tabledef = [
@@ -856,8 +858,7 @@ class TSQLGenerator:
         table_def = TSQLGenerator._get_table_definition(
             table_name, table_schema, columns
         )
-        if file_path.exists():
-            TSQLGenerator._raise_fileexistserror(file_path)
+        TSQLGenerator._assert_filepath_available(file_path)
         file_path.write_text(table_def)
 
     @staticmethod
