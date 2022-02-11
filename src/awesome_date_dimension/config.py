@@ -1081,53 +1081,53 @@ class DimFiscalMonthColumns:
     month_end_fraction_of_year: Column = field(
         default_factory=lambda: Column("MonthEndFractionOfYear", True, 51)
     )
-    month_start_current_quarter_start: Column = field(
-        default_factory=lambda: Column("MonthStartCurrentQuarterStart", True, 52)
+    current_quarter_start: Column = field(
+        default_factory=lambda: Column("CurrentQuarterStart", True, 52)
     )
-    month_start_current_quarter_end: Column = field(
-        default_factory=lambda: Column("MonthStartCurrentQuarterEnd", True, 53)
+    current_quarter_end: Column = field(
+        default_factory=lambda: Column("CurrentQuarterEnd", True, 53)
     )
-    month_start_current_year_start: Column = field(
-        default_factory=lambda: Column("MonthStartCurrentYearStart", True, 54)
+    current_year_start: Column = field(
+        default_factory=lambda: Column("CurrentYearStart", True, 54)
     )
-    month_start_current_year_end: Column = field(
-        default_factory=lambda: Column("MonthStartCurrentYearEnd", True, 55)
+    current_year_end: Column = field(
+        default_factory=lambda: Column("CurrentYearEnd", True, 55)
     )
-    month_start_prior_month_start: Column = field(
-        default_factory=lambda: Column("MonthStartPriorMonthStart", True, 56)
+    prior_month_start: Column = field(
+        default_factory=lambda: Column("PriorMonthStart", True, 56)
     )
-    month_start_prior_month_end: Column = field(
-        default_factory=lambda: Column("MonthStartPriorMonthEnd", True, 57)
+    prior_month_end: Column = field(
+        default_factory=lambda: Column("PriorMonthEnd", True, 57)
     )
-    month_start_prior_quarter_start: Column = field(
-        default_factory=lambda: Column("MonthStartPriorQuarterStart", True, 58)
+    prior_quarter_start: Column = field(
+        default_factory=lambda: Column("PriorQuarterStart", True, 58)
     )
-    month_start_prior_quarter_end: Column = field(
-        default_factory=lambda: Column("MonthStartPriorQuarterEnd", True, 59)
+    prior_quarter_end: Column = field(
+        default_factory=lambda: Column("PriorQuarterEnd", True, 59)
     )
-    month_start_prior_year_start: Column = field(
-        default_factory=lambda: Column("MonthStartPriorYearStart", True, 60)
+    prior_year_start: Column = field(
+        default_factory=lambda: Column("PriorYearStart", True, 60)
     )
-    month_start_prior_year_end: Column = field(
-        default_factory=lambda: Column("MonthStartPriorYearEnd", True, 61)
+    prior_year_end: Column = field(
+        default_factory=lambda: Column("PriorYearEnd", True, 61)
     )
-    month_start_next_month_start: Column = field(
-        default_factory=lambda: Column("MonthStartNextMonthStart", True, 62)
+    next_month_start: Column = field(
+        default_factory=lambda: Column("NextMonthStart", True, 62)
     )
-    month_start_next_month_end: Column = field(
-        default_factory=lambda: Column("MonthStartNextMonthEnd", True, 63)
+    next_month_end: Column = field(
+        default_factory=lambda: Column("NextMonthEnd", True, 63)
     )
-    month_start_next_quarter_start: Column = field(
-        default_factory=lambda: Column("MonthStartNextQuarterStart", True, 64)
+    next_quarter_start: Column = field(
+        default_factory=lambda: Column("NextQuarterStart", True, 64)
     )
-    month_start_next_quarter_end: Column = field(
-        default_factory=lambda: Column("MonthStartNextQuarterEnd", True, 65)
+    next_quarter_end: Column = field(
+        default_factory=lambda: Column("NextQuarterEnd", True, 65)
     )
-    month_start_next_year_start: Column = field(
-        default_factory=lambda: Column("MonthStartNextYearStart", True, 66)
+    next_year_start: Column = field(
+        default_factory=lambda: Column("NextYearStart", True, 66)
     )
-    month_start_next_year_end: Column = field(
-        default_factory=lambda: Column("MonthStartNextYearEnd", True, 67)
+    next_year_end: Column = field(
+        default_factory=lambda: Column("NextYearEnd", True, 67)
     )
     month_start_quarterly_burnup: Column = field(
         default_factory=lambda: Column("MonthStartQuarterlyBurnup", True, 68)
@@ -1315,53 +1315,53 @@ class DimCalendarMonthColumns:
     month_end_fraction_of_year: Column = field(
         default_factory=lambda: Column("MonthEndFractionOfYear", True, 51)
     )
-    month_start_current_quarter_start: Column = field(
-        default_factory=lambda: Column("MonthStartCurrentQuarterStart", True, 52)
+    current_quarter_start: Column = field(
+        default_factory=lambda: Column("CurrentQuarterStart", True, 52)
     )
-    month_start_current_quarter_end: Column = field(
-        default_factory=lambda: Column("MonthStartCurrentQuarterEnd", True, 53)
+    current_quarter_end: Column = field(
+        default_factory=lambda: Column("CurrentQuarterEnd", True, 53)
     )
-    month_start_current_year_start: Column = field(
-        default_factory=lambda: Column("MonthStartCurrentYearStart", True, 54)
+    current_year_start: Column = field(
+        default_factory=lambda: Column("CurrentYearStart", True, 54)
     )
-    month_start_current_year_end: Column = field(
-        default_factory=lambda: Column("MonthStartCurrentYearEnd", True, 55)
+    current_year_end: Column = field(
+        default_factory=lambda: Column("CurrentYearEnd", True, 55)
     )
-    month_start_prior_month_start: Column = field(
-        default_factory=lambda: Column("MonthStartPriorMonthStart", True, 56)
+    prior_month_start: Column = field(
+        default_factory=lambda: Column("PriorMonthStart", True, 56)
     )
-    month_start_prior_month_end: Column = field(
-        default_factory=lambda: Column("MonthStartPriorMonthEnd", True, 57)
+    prior_month_end: Column = field(
+        default_factory=lambda: Column("PriorMonthEnd", True, 57)
     )
-    month_start_prior_quarter_start: Column = field(
-        default_factory=lambda: Column("MonthStartPriorQuarterStart", True, 58)
+    prior_quarter_start: Column = field(
+        default_factory=lambda: Column("PriorQuarterStart", True, 58)
     )
-    month_start_prior_quarter_end: Column = field(
-        default_factory=lambda: Column("MonthStartPriorQuarterEnd", True, 59)
+    prior_quarter_end: Column = field(
+        default_factory=lambda: Column("PriorQuarterEnd", True, 59)
     )
-    month_start_prior_year_start: Column = field(
-        default_factory=lambda: Column("MonthStartPriorYearStart", True, 60)
+    prior_year_start: Column = field(
+        default_factory=lambda: Column("PriorYearStart", True, 60)
     )
-    month_start_prior_year_end: Column = field(
-        default_factory=lambda: Column("MonthStartPriorYearEnd", True, 61)
+    prior_year_end: Column = field(
+        default_factory=lambda: Column("PriorYearEnd", True, 61)
     )
-    month_start_next_month_start: Column = field(
-        default_factory=lambda: Column("MonthStartNextMonthStart", True, 62)
+    next_month_start: Column = field(
+        default_factory=lambda: Column("NextMonthStart", True, 62)
     )
-    month_start_next_month_end: Column = field(
-        default_factory=lambda: Column("MonthStartNextMonthEnd", True, 63)
+    next_month_end: Column = field(
+        default_factory=lambda: Column("NextMonthEnd", True, 63)
     )
-    month_start_next_quarter_start: Column = field(
-        default_factory=lambda: Column("MonthStartNextQuarterStart", True, 64)
+    next_quarter_start: Column = field(
+        default_factory=lambda: Column("NextQuarterStart", True, 64)
     )
-    month_start_next_quarter_end: Column = field(
-        default_factory=lambda: Column("MonthStartNextQuarterEnd", True, 65)
+    next_quarter_end: Column = field(
+        default_factory=lambda: Column("NextQuarterEnd", True, 65)
     )
-    month_start_next_year_start: Column = field(
-        default_factory=lambda: Column("MonthStartNextYearStart", True, 66)
+    next_year_start: Column = field(
+        default_factory=lambda: Column("NextYearStart", True, 66)
     )
-    month_start_next_year_end: Column = field(
-        default_factory=lambda: Column("MonthStartNextYearEnd", True, 67)
+    next_year_end: Column = field(
+        default_factory=lambda: Column("NextYearEnd", True, 67)
     )
     month_start_quarterly_burnup: Column = field(
         default_factory=lambda: Column("MonthStartQuarterlyBurnup", True, 68)

@@ -1,109 +1,203 @@
-def dim_fiscal_month_insert_template() -> str:
-    return """WITH DistinctMonths AS (
+from ...config import Config
+
+
+def dim_fiscal_month_insert_template(config: Config) -> str:
+    dfm_conf = config.dim_fiscal_month
+    dfm_cols = dfm_conf.columns
+    dd_conf = config.dim_date
+    dd_cols = dd_conf.columns
+    h_conf = config.holidays
+    holiday_columndef: list[str] = []
+    holiday_colselect: list[str] = []
+    for i, t in enumerate(h_conf.holiday_types):
+        holiday_columndef.append(
+            f"{t.generated_column_prefix}{t.generated_monthly_count_column_postfix} = SUM({t.generated_column_prefix}{t.generated_flag_column_postfix} * 1)"
+        )
+        holiday_colselect.append(
+            f"{t.generated_column_prefix}{t.generated_monthly_count_column_postfix}"
+        )
+
+    holiday_columndef_str = ",\n  ".join(holiday_columndef)
+
+    holiday_colselect_str = ",\n  ".join(holiday_colselect)
+
+    return f"""WITH DistinctMonths AS (
   SELECT
-  MonthStartKey = CONVERT(
+  {dfm_cols.month_start_key.name} = CONVERT(
     int,
     CONVERT(
     varchar(8),
-    FiscalCurrentMonthStart,
+    {dd_cols.fiscal_current_month_start.name},
     112
     )
   ),
-  MonthEndKey = CONVERT(
+  {dfm_cols.month_end_key.name} = CONVERT(
     int,
     CONVERT(
     varchar(8),
-    FiscalCurrentMonthEnd,
+    {dd_cols.fiscal_current_month_end.name},
     112
     )
   ),
-  CompanyHolidaysInMonth = SUM(CompanyHolidayFlag * 1),
-  USPublicHolidaysInMonth = SUM(USPublicHolidayFlag * 1)
+  {holiday_columndef_str}
   FROM
-    dbo.DimDate
-    GROUP BY FiscalCurrentMonthStart, FiscalCurrentMonthEnd
+    {dd_conf.table_schema}.{dd_conf.table_name}
+    GROUP BY {dd_cols.fiscal_current_month_start.name}, {dd_cols.fiscal_current_month_end.name}
 )
 
-INSERT INTO dbo.DimFiscalMonth
--- Yank the day-level stuff we need for both the start and end dates from dbo.DimDate
+INSERT INTO dbo.DimFiscalMonth (
+  {dfm_cols.month_start_key.name},
+  {dfm_cols.month_end_key.name},
+  {dfm_cols.month_start_date.name},
+  {dfm_cols.month_end_date.name},
+  {dfm_cols.month_start_iso_date_name.name},
+  {dfm_cols.month_end_iso_date_name.name},
+  {dfm_cols.month_start_american_date_name.name},
+  {dfm_cols.month_end_american_date_name.name},
+  {dfm_cols.month_name.name},
+  {dfm_cols.month_abbrev.name},
+  {dfm_cols.month_start_year_week_name.name},
+  {dfm_cols.month_end_year_week_name.name},
+  {dfm_cols.year_month_name.name},
+  {dfm_cols.month_year_name.name},
+  {dfm_cols.year_quarter_name.name},
+  {dfm_cols.year.name},
+  {dfm_cols.month_start_year_week.name},
+  {dfm_cols.month_end_year_week.name},
+  {dfm_cols.year_month.name},
+  {dfm_cols.year_quarter.name},
+  {dfm_cols.month_start_day_of_quarter.name},
+  {dfm_cols.month_end_day_of_quarter.name},
+  {dfm_cols.month_start_day_of_year.name},
+  {dfm_cols.month_end_day_of_year.name},
+  {dfm_cols.month_start_week_of_quarter.name},
+  {dfm_cols.month_end_week_of_quarter.name},
+  {dfm_cols.month_start_week_of_year.name},
+  {dfm_cols.month_end_week_of_year.name},
+  {dfm_cols.month_of_quarter.name},
+  {dfm_cols.quarter.name},
+  {dfm_cols.days_in_month.name},
+  {dfm_cols.days_in_quarter.name},
+  {dfm_cols.days_in_year.name},
+  {dfm_cols.current_month_flag.name},
+  {dfm_cols.prior_month_flag.name},
+  {dfm_cols.next_month_flag.name},
+  {dfm_cols.current_quarter_flag.name},
+  {dfm_cols.prior_quarter_flag.name},
+  {dfm_cols.next_quarter_flag.name},
+  {dfm_cols.current_year_flag.name},
+  {dfm_cols.prior_year_flag.name},
+  {dfm_cols.next_year_flag.name},
+  {dfm_cols.first_day_of_month_flag.name},
+  {dfm_cols.last_day_of_month_flag.name},
+  {dfm_cols.first_day_of_quarter_flag.name},
+  {dfm_cols.last_day_of_quarter_flag.name},
+  {dfm_cols.first_day_of_year_flag.name},
+  {dfm_cols.last_day_of_year_flag.name},
+  {dfm_cols.month_start_fraction_of_quarter.name},
+  {dfm_cols.month_end_fraction_of_quarter.name},
+  {dfm_cols.month_start_fraction_of_year.name},
+  {dfm_cols.month_end_fraction_of_year.name},
+  {dfm_cols.current_quarter_start.name},
+  {dfm_cols.current_quarter_end.name},
+  {dfm_cols.current_year_start.name},
+  {dfm_cols.current_year_end.name},
+  {dfm_cols.prior_month_start.name},
+  {dfm_cols.prior_month_end.name},
+  {dfm_cols.prior_quarter_start.name},
+  {dfm_cols.prior_quarter_end.name},
+  {dfm_cols.prior_year_start.name},
+  {dfm_cols.prior_year_end.name},
+  {dfm_cols.next_month_start.name},
+  {dfm_cols.next_month_end.name},
+  {dfm_cols.next_quarter_start.name},
+  {dfm_cols.next_quarter_end.name},
+  {dfm_cols.next_year_start.name},
+  {dfm_cols.next_year_end.name},
+  {dfm_cols.month_start_quarterly_burnup.name},
+  {dfm_cols.month_end_quarterly_burnup.name},
+  {dfm_cols.month_start_yearly_burnup.name},
+  {dfm_cols.month_end_yearly_burnup.name},
+  {holiday_colselect_str}
+)
+-- Yank the day-level stuff we need for both the start and end dates from {dd_conf.table_name}
 SELECT  
-  base.MonthStartKey,
-  base.MonthEndKey,
-  MonthStartDate = startdate.TheDate,
-  MonthEndDate = enddate.TheDate,
-  MonthStartISODateName = startdate.ISODateName,
-  MonthEndISODateName = enddate.ISODateName,
-  MonthStartAmericanDateName = startdate.AmericanDateName,
-  MonthEndAmericanDateName = enddate.AmericanDateName,
-  MonthName = startdate.FiscalMonthName,
-  MonthAbbrev = startdate.FiscalMonthAbbrev,
-  MonthStartYearWeekName = startdate.FiscalYearWeekName,
-  MonthEndYearWeekName = enddate.FiscalYearWeekName,
-  YearMonthName = startdate.FiscalYearMonthName,
-  MonthYearName = startdate.FiscalMonthYearName,
-  YearQuarterName = startdate.FiscalYearQuarterName,
-  Year = startdate.FiscalYear,
-  MonthStartYearWeek = startdate.FiscalYearWeek,
-  MonthEndYearWeek = enddate.FiscalYearWeek,
-  YearMonth = startdate.FiscalYearMonth,
-  YearQuarter = startdate.FiscalYearQuarter,
-  MonthStartDayOfQuarter = startdate.FiscalDayOfQuarter,
-  MonthEndDayOfQuarter = enddate.FiscalDayOfQuarter,
-  MonthStartDayOfYear = startdate.FiscalDayOfYear,
-  MonthEndDayOfYear = enddate.FiscalDayOfYear,
-  MonthStartWeekOfQuarter = startdate.FiscalWeekOfQuarter,
-  MonthEndWeekOfQuarter = enddate.FiscalWeekOfQuarter,
-  MonthStartWeekOfYear = startdate.FiscalWeekOfYear,
-  MonthEndWeekOfYear = enddate.FiscalWeekOfYear,
-  MonthOfQuarter = startdate.FiscalMonthOfQuarter,
-  Quarter = startdate.FiscalQuarter,
-  DaysInMonth = startdate.FiscalDaysInMonth,
-  DaysInQuarter = startdate.FiscalDaysInQuarter,
-  DaysInYear = startdate.FiscalDaysInYear,
-  CurrentMonthFlag = startdate.FiscalCurrentMonthFlag,
-  PriorMonthFlag = startdate.FiscalPriorMonthFlag,
-  NextMonthFlag = startdate.FiscalNextMonthFlag,
-  CurrentQuarterFlag = startdate.FiscalCurrentQuarterFlag,
-  PriorQuarterFlag = startdate.FiscalPriorQuarterFlag,
-  NextQuarterFlag = startdate.FiscalNextQuarterFlag,
-  CurrentYearFlag = startdate.FiscalCurrentYearFlag,
-  PriorYearFlag = startdate.FiscalPriorYearFlag,
-  NextYearFlag = startdate.FiscalNextYearFlag,
-  FirstDayOfMonthFlag = startdate.FiscalFirstDayOfMonthFlag,
-  LastDayOfMonthFlag = startdate.FiscalLastDayOfMonthFlag,
-  FirstDayOfQuarterFlag = startdate.FiscalFirstDayOfQuarterFlag,
-  LastDayOfQuarterFlag = startdate.FiscalLastDayOfQuarterFlag,
-  FirstDayOfYearFlag = startdate.FiscalFirstDayOfYearFlag,
-  LastDayOfYearFlag = startdate.FiscalLastDayOfYearFlag,
-  MonthStartFractionOfQuarter = startdate.FiscalFractionOfQuarter,
-  MonthEndFractionOfQuarter = enddate.FiscalFractionOfQuarter,
-  MonthStartFractionOfYear = startdate.FiscalFractionOfYear,
-  MonthEndFractionOfYear = enddate.FiscalFractionOfYear,
-  CurrentQuarterStart = startdate.FiscalCurrentQuarterStart,
-  CurrentQuarterEnd = startdate.FiscalCurrentQuarterEnd,
-  CurrentYearStart = startdate.FiscalCurrentYearStart,
-  CurrentYearEnd = startdate.FiscalCurrentYearEnd,
-  PriorMonthStart = startdate.FiscalPriorMonthStart,
-  PriorMonthEnd = startdate.FiscalPriorMonthEnd,
-  PriorQuarterStart = startdate.FiscalPriorQuarterStart,
-  PriorQuarterEnd = startdate.FiscalPriorQuarterEnd,
-  PriorYearStart = startdate.FiscalPriorYearStart,
-  PriorYearEnd = startdate.FiscalPriorYearEnd,
-  NextMonthStart = startdate.FiscalNextMonthStart,
-  NextMonthEnd = startdate.FiscalNextMonthEnd,
-  NextQuarterStart = startdate.FiscalNextQuarterStart,
-  NextQuarterEnd = startdate.FiscalNextQuarterEnd,
-  NextYearStart = startdate.FiscalNextYearStart,
-  NextYearEnd = startdate.FiscalNextYearEnd,
-  MonthStartQuarterlyBurnup = startdate.FiscalQuarterlyBurnup,
-  MonthEndQuarterlyBurnup = enddate.FiscalQuarterlyBurnup,
-  MonthStartYearlyBurnup = startdate.FiscalYearlyBurnup,
-  MonthEndQuarterlyBurnup = enddate.FiscalYearlyBurnup,
-  base.CompanyHolidaysInMonth,
-  base.USPublicHolidaysInMonth
+  base.{dfm_cols.month_start_key.name},
+  base.{dfm_cols.month_end_key.name},
+  {dfm_cols.month_start_date.name} = startdate.{dd_cols.date_key.name},
+  {dfm_cols.month_end_date.name} = enddate.{dd_cols.date_key.name},
+  {dfm_cols.month_start_iso_date_name.name} = startdate.{dd_cols.iso_date_name.name},
+  {dfm_cols.month_end_iso_date_name.name} = enddate.{dd_cols.iso_date_name.name},
+  {dfm_cols.month_start_american_date_name.name} = startdate.{dd_cols.american_date_name.name},
+  {dfm_cols.month_end_american_date_name.name} = enddate.{dd_cols.american_date_name.name},
+  {dfm_cols.month_name.name} = startdate.{dd_cols.fiscal_month_name.name},
+  {dfm_cols.month_abbrev.name} = startdate.{dd_cols.fiscal_month_abbrev.name},
+  {dfm_cols.month_start_year_week_name.name} = startdate.{dd_cols.fiscal_year_week_name.name},
+  {dfm_cols.month_end_year_week_name.name} = enddate.{dd_cols.fiscal_year_week_name.name},
+  {dfm_cols.year_month_name.name} = startdate.{dd_cols.fiscal_year_month_name.name},
+  {dfm_cols.month_year_name.name} = startdate.{dd_cols.fiscal_month_year_name.name},
+  {dfm_cols.year_quarter_name.name} = startdate.{dd_cols.fiscal_year_quarter_name.name},
+  {dfm_cols.year.name} = startdate.{dd_cols.fiscal_year.name},
+  {dfm_cols.month_start_year_week.name} = startdate.{dd_cols.fiscal_year_week.name},
+  {dfm_cols.month_end_year_week.name} = enddate.{dd_cols.fiscal_year_week.name},
+  {dfm_cols.year_month.name} = startdate.{dd_cols.fiscal_year_month.name},
+  {dfm_cols.year_quarter.name} = startdate.{dd_cols.fiscal_year_quarter.name},
+  {dfm_cols.month_start_day_of_quarter.name} = startdate.{dd_cols.fiscal_day_of_quarter.name},
+  {dfm_cols.month_end_day_of_quarter.name} = enddate.{dd_cols.fiscal_day_of_quarter.name},
+  {dfm_cols.month_start_day_of_year.name} = startdate.{dd_cols.fiscal_day_of_year.name},
+  {dfm_cols.month_end_day_of_year.name} = enddate.{dd_cols.fiscal_day_of_year.name},
+  {dfm_cols.month_start_week_of_quarter.name} = startdate.{dd_cols.fiscal_week_of_quarter.name},
+  {dfm_cols.month_end_week_of_quarter.name} = enddate.{dd_cols.fiscal_week_of_quarter.name},
+  {dfm_cols.month_start_week_of_year.name} = startdate.{dd_cols.fiscal_week_of_year.name},
+  {dfm_cols.month_end_week_of_year.name} = enddate.{dd_cols.fiscal_week_of_year.name},
+  {dfm_cols.month_of_quarter.name} = startdate.{dd_cols.fiscal_month_of_quarter.name},
+  {dfm_cols.quarter.name} = startdate.{dd_cols.fiscal_quarter.name},
+  {dfm_cols.days_in_month.name} = startdate.{dd_cols.fiscal_days_in_month.name},
+  {dfm_cols.days_in_quarter.name} = startdate.{dd_cols.fiscal_days_in_quarter.name},
+  {dfm_cols.days_in_year.name} = startdate.{dd_cols.fiscal_days_in_year.name},
+  {dfm_cols.current_month_flag.name} = startdate.{dd_cols.fiscal_current_month_flag.name},
+  {dfm_cols.prior_month_flag.name} = startdate.{dd_cols.fiscal_prior_month_flag.name},
+  {dfm_cols.next_month_flag.name} = startdate.{dd_cols.fiscal_next_month_flag.name},
+  {dfm_cols.current_quarter_flag.name} = startdate.{dd_cols.fiscal_current_quarter_flag.name},
+  {dfm_cols.prior_quarter_flag.name} = startdate.{dd_cols.fiscal_prior_quarter_flag.name},
+  {dfm_cols.next_quarter_flag.name} = startdate.{dd_cols.fiscal_next_quarter_flag.name},
+  {dfm_cols.current_year_flag.name} = startdate.{dd_cols.fiscal_current_year_flag.name},
+  {dfm_cols.prior_year_flag.name} = startdate.{dd_cols.fiscal_prior_year_flag.name},
+  {dfm_cols.next_year_flag.name} = startdate.{dd_cols.fiscal_next_year_flag.name},
+  {dfm_cols.first_day_of_month_flag.name} = startdate.{dd_cols.fiscal_first_day_of_month_flag.name},
+  {dfm_cols.last_day_of_month_flag.name} = startdate.{dd_cols.fiscal_last_day_of_month_flag.name},
+  {dfm_cols.first_day_of_quarter_flag.name} = startdate.{dd_cols.fiscal_first_day_of_quarter_flag.name},
+  {dfm_cols.last_day_of_quarter_flag.name} = startdate.{dd_cols.fiscal_last_day_of_quarter_flag.name},
+  {dfm_cols.first_day_of_year_flag.name} = startdate.{dd_cols.fiscal_first_day_of_year_flag.name},
+  {dfm_cols.last_day_of_year_flag.name} = startdate.{dd_cols.fiscal_last_day_of_year_flag.name},
+  {dfm_cols.month_start_fraction_of_quarter.name} = startdate.{dd_cols.fiscal_fraction_of_quarter.name},
+  {dfm_cols.month_end_fraction_of_quarter.name} = enddate.{dd_cols.fiscal_fraction_of_quarter.name},
+  {dfm_cols.month_start_fraction_of_year.name} = startdate.{dd_cols.fiscal_fraction_of_year.name},
+  {dfm_cols.month_end_fraction_of_year.name} = enddate.{dd_cols.fiscal_fraction_of_year.name},
+  {dfm_cols.current_quarter_start.name} = startdate.{dd_cols.fiscal_current_quarter_start.name},
+  {dfm_cols.current_quarter_end.name} = startdate.{dd_cols.fiscal_current_quarter_end.name},
+  {dfm_cols.current_year_start.name} = startdate.{dd_cols.fiscal_current_year_start.name},
+  {dfm_cols.current_year_end.name} = startdate.{dd_cols.fiscal_current_year_end.name},
+  {dfm_cols.prior_month_start.name} = startdate.{dd_cols.fiscal_prior_month_start.name},
+  {dfm_cols.prior_month_end.name} = startdate.{dd_cols.fiscal_prior_month_end.name},
+  {dfm_cols.prior_quarter_start.name} = startdate.{dd_cols.fiscal_prior_quarter_start.name},
+  {dfm_cols.prior_quarter_end.name} = startdate.{dd_cols.fiscal_prior_quarter_end.name},
+  {dfm_cols.prior_year_start.name} = startdate.{dd_cols.fiscal_prior_year_start.name},
+  {dfm_cols.prior_year_end.name} = startdate.{dd_cols.fiscal_prior_year_end.name},
+  {dfm_cols.next_month_start.name} = startdate.{dd_cols.fiscal_next_month_start.name},
+  {dfm_cols.next_month_end.name} = startdate.{dd_cols.fiscal_next_month_end.name},
+  {dfm_cols.next_quarter_start.name} = startdate.{dd_cols.fiscal_next_quarter_start.name},
+  {dfm_cols.next_quarter_end.name} = startdate.{dd_cols.fiscal_next_quarter_end.name},
+  {dfm_cols.next_year_start.name} = startdate.{dd_cols.fiscal_next_year_start.name},
+  {dfm_cols.next_year_end.name} = startdate.{dd_cols.fiscal_next_year_end.name},
+  {dfm_cols.month_start_quarterly_burnup.name} = startdate.{dd_cols.fiscal_quarterly_burnup.name},
+  {dfm_cols.month_end_quarterly_burnup.name} = enddate.{dd_cols.fiscal_quarterly_burnup.name},
+  {dfm_cols.month_start_yearly_burnup.name} = startdate.{dd_cols.fiscal_yearly_burnup.name},
+  {dfm_cols.month_end_yearly_burnup.name} = enddate.{dd_cols.fiscal_yearly_burnup.name},
+  {holiday_colselect_str}
 FROM
   DistinctMonths AS base
-  INNER JOIN dbo.DimDate AS startdate
-    ON base.MonthStartKey = startdate.DateKey
-  INNER JOIN dbo.DimDate AS enddate
-    ON base.MonthEndKey = enddate.DateKey;"""
+  INNER JOIN {dd_conf.table_schema}.{dd_conf.table_name} AS startdate
+    ON base.{dfm_cols.month_start_key.name} = startdate.{dd_cols.date_key.name}
+  INNER JOIN {dd_conf.table_schema}.{dd_conf.table_name} AS enddate
+    ON base.{dfm_cols.month_end_key.name} = enddate.{dd_cols.date_key.name};"""

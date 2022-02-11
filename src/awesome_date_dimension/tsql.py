@@ -4,6 +4,9 @@ from pathlib import Path
 from typing import Iterable
 
 from ._internal.tsql_templates.dim_date_insert_template import dim_date_insert_template
+from ._internal.tsql_templates.dim_fiscal_month_insert_template import (
+    dim_fiscal_month_insert_template,
+)
 from ._internal.tsql_templates.holiday_types_insert_template import (
     holiday_types_insert_template,
 )
@@ -368,36 +371,22 @@ class TSQLDimFiscalMonthColumns:
                 columns.month_end_fraction_of_year,
                 f"chk_DimFiscalMonth_{columns.month_end_fraction_of_year.name} CHECK ({columns.month_end_fraction_of_year.name} BETWEEN 0 AND 1)",
             ),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_current_quarter_start
-            ),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_current_quarter_end
-            ),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_current_year_start
-            ),
-            TSQLColumn.from_column("date", False, columns.month_start_current_year_end),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_prior_month_start
-            ),
-            TSQLColumn.from_column("date", False, columns.month_start_prior_month_end),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_prior_quarter_start
-            ),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_prior_quarter_end
-            ),
-            TSQLColumn.from_column("date", False, columns.month_start_prior_year_start),
-            TSQLColumn.from_column("date", False, columns.month_start_prior_year_end),
-            TSQLColumn.from_column("date", False, columns.month_start_next_month_start),
-            TSQLColumn.from_column("date", False, columns.month_start_next_month_end),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_next_quarter_start
-            ),
-            TSQLColumn.from_column("date", False, columns.month_start_next_quarter_end),
-            TSQLColumn.from_column("date", False, columns.month_start_next_year_start),
-            TSQLColumn.from_column("date", False, columns.month_start_next_year_end),
+            TSQLColumn.from_column("date", False, columns.current_quarter_start),
+            TSQLColumn.from_column("date", False, columns.current_quarter_end),
+            TSQLColumn.from_column("date", False, columns.current_year_start),
+            TSQLColumn.from_column("date", False, columns.current_year_end),
+            TSQLColumn.from_column("date", False, columns.prior_month_start),
+            TSQLColumn.from_column("date", False, columns.prior_month_end),
+            TSQLColumn.from_column("date", False, columns.prior_quarter_start),
+            TSQLColumn.from_column("date", False, columns.prior_quarter_end),
+            TSQLColumn.from_column("date", False, columns.prior_year_start),
+            TSQLColumn.from_column("date", False, columns.prior_year_end),
+            TSQLColumn.from_column("date", False, columns.next_month_start),
+            TSQLColumn.from_column("date", False, columns.next_month_end),
+            TSQLColumn.from_column("date", False, columns.next_quarter_start),
+            TSQLColumn.from_column("date", False, columns.next_quarter_end),
+            TSQLColumn.from_column("date", False, columns.next_year_start),
+            TSQLColumn.from_column("date", False, columns.next_year_end),
             TSQLColumn.from_column("bit", False, columns.month_start_quarterly_burnup),
             TSQLColumn.from_column("bit", False, columns.month_end_quarterly_burnup),
             TSQLColumn.from_column("bit", False, columns.month_start_yearly_burnup),
@@ -512,36 +501,22 @@ class TSQLDimCalendarMonthColumns:
                 columns.month_end_fraction_of_year,
                 f"chk_DimFiscalMonth_{columns.month_end_fraction_of_year.name} CHECK ({columns.month_end_fraction_of_year.name} BETWEEN 0 AND 1)",
             ),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_current_quarter_start
-            ),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_current_quarter_end
-            ),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_current_year_start
-            ),
-            TSQLColumn.from_column("date", False, columns.month_start_current_year_end),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_prior_month_start
-            ),
-            TSQLColumn.from_column("date", False, columns.month_start_prior_month_end),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_prior_quarter_start
-            ),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_prior_quarter_end
-            ),
-            TSQLColumn.from_column("date", False, columns.month_start_prior_year_start),
-            TSQLColumn.from_column("date", False, columns.month_start_prior_year_end),
-            TSQLColumn.from_column("date", False, columns.month_start_next_month_start),
-            TSQLColumn.from_column("date", False, columns.month_start_next_month_end),
-            TSQLColumn.from_column(
-                "date", False, columns.month_start_next_quarter_start
-            ),
-            TSQLColumn.from_column("date", False, columns.month_start_next_quarter_end),
-            TSQLColumn.from_column("date", False, columns.month_start_next_year_start),
-            TSQLColumn.from_column("date", False, columns.month_start_next_year_end),
+            TSQLColumn.from_column("date", False, columns.current_quarter_start),
+            TSQLColumn.from_column("date", False, columns.current_quarter_end),
+            TSQLColumn.from_column("date", False, columns.current_year_start),
+            TSQLColumn.from_column("date", False, columns.current_year_end),
+            TSQLColumn.from_column("date", False, columns.prior_month_start),
+            TSQLColumn.from_column("date", False, columns.prior_month_end),
+            TSQLColumn.from_column("date", False, columns.prior_quarter_start),
+            TSQLColumn.from_column("date", False, columns.prior_quarter_end),
+            TSQLColumn.from_column("date", False, columns.prior_year_start),
+            TSQLColumn.from_column("date", False, columns.prior_year_end),
+            TSQLColumn.from_column("date", False, columns.next_month_start),
+            TSQLColumn.from_column("date", False, columns.next_month_end),
+            TSQLColumn.from_column("date", False, columns.next_quarter_start),
+            TSQLColumn.from_column("date", False, columns.next_quarter_end),
+            TSQLColumn.from_column("date", False, columns.next_year_start),
+            TSQLColumn.from_column("date", False, columns.next_year_end),
             TSQLColumn.from_column("bit", False, columns.month_start_quarterly_burnup),
             TSQLColumn.from_column("bit", False, columns.month_end_quarterly_burnup),
             TSQLColumn.from_column("bit", False, columns.month_start_yearly_burnup),
@@ -722,13 +697,18 @@ class TSQLGenerator:
         )
         TSQLGenerator._assert_filepath_available(file_path)
         file_path.write_text(scriptdef)
-        pass
+        return file_no + 1
 
     def _generate_dim_fiscal_month_build_scripts(
         self, file_no: int, base_path: Path
     ) -> int:
-        # raise NotImplementedError()
-        pass
+        scriptdef = dim_fiscal_month_insert_template(self._config)
+        file_path = base_path / TSQLGenerator._get_sql_filename(
+            file_no, self._config.dim_fiscal_month.table_name
+        )
+        TSQLGenerator._assert_filepath_available(file_path)
+        file_path.write_text(scriptdef)
+        return file_no + 1
 
     def _generate_dim_calendar_month_build_scripts(
         self, file_no: int, base_path: Path
