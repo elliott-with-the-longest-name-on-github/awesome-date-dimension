@@ -693,8 +693,9 @@ class TSQLGenerator:
         )
 
     def _generate_holiday_build_scripts(self, file_no: int, base_path: Path) -> int:
-        file_no = self._generate_holiday_type_build_script(file_no, base_path)
-        file_no = self._generate_holidays_build_script(file_no, base_path)
+        if self._config.holidays.generate_holidays:
+            file_no = self._generate_holiday_type_build_script(file_no, base_path)
+            file_no = self._generate_holidays_build_script(file_no, base_path)
         return file_no
 
     def _generate_dim_date_build_scripts(self, file_no: int, base_path: Path) -> int:
