@@ -3,15 +3,24 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable, Iterable
 
+from ._internal.tsql_templates.dim_calendar_month_constraints_template import (
+    dim_calendar_month_constraints_template,
+)
 from ._internal.tsql_templates.dim_calendar_month_insert_template import (
     dim_calendar_month_insert_template,
 )
 from ._internal.tsql_templates.dim_calendar_month_refresh_template import (
     dim_calendar_month_refresh_template,
 )
+from ._internal.tsql_templates.dim_date_constraints_template import (
+    dim_date_constraints_template,
+)
 from ._internal.tsql_templates.dim_date_insert_template import dim_date_insert_template
 from ._internal.tsql_templates.dim_date_refresh_template import (
     dim_date_refresh_template,
+)
+from ._internal.tsql_templates.dim_fiscal_month_constraints_template import (
+    dim_fiscal_month_constraints_template,
 )
 from ._internal.tsql_templates.dim_fiscal_month_insert_template import (
     dim_fiscal_month_insert_template,
@@ -19,8 +28,14 @@ from ._internal.tsql_templates.dim_fiscal_month_insert_template import (
 from ._internal.tsql_templates.dim_fiscal_month_refresh_template import (
     dim_fiscal_month_refresh_template,
 )
+from ._internal.tsql_templates.holiday_types_constraints_template import (
+    holiday_types_constraints_template,
+)
 from ._internal.tsql_templates.holiday_types_insert_template import (
     holiday_types_insert_template,
+)
+from ._internal.tsql_templates.holidays_constraints_template import (
+    holidays_constraints_template,
 )
 from ._internal.tsql_templates.holidays_insert_template import holidays_insert_template
 from ._internal.tsql_templates.table_setup_template import table_setup_template
@@ -786,24 +801,51 @@ class TSQLGenerator:
     def _generate_dim_date_table_constraints(
         self, file_no: int, base_path: Path
     ) -> int:
-        # raise NotImplementedError()
-        pass
+        return TSQLGenerator._generate_file(
+            file_no,
+            self._config.dim_date.table_name,
+            base_path,
+            self._config,
+            dim_date_constraints_template,
+        )
 
     def _generate_dim_fiscal_month_table_constraints(
         self, file_no: int, base_path: Path
     ) -> int:
-        # raise NotImplementedError()
-        pass
+        return TSQLGenerator._generate_file(
+            file_no,
+            self._config.dim_fiscal_month.table_name,
+            base_path,
+            self._config,
+            dim_fiscal_month_constraints_template,
+        )
 
     def _generate_dim_calendar_month_table_constraints(
         self, file_no: int, base_path: Path
     ) -> int:
-        # raise NotImplementedError()
-        pass
+        return TSQLGenerator._generate_file(
+            file_no,
+            self._config.dim_calendar_month.table_name,
+            base_path,
+            self._config,
+            dim_calendar_month_constraints_template,
+        )
 
     def _generate_holiday_table_constraints(self, file_no: int, base_path: Path) -> int:
-        # raise NotImplementedError()
-        pass
+        file_no = TSQLGenerator._generate_file(
+            file_no,
+            self._config.holidays.holiday_types_table_name,
+            base_path,
+            self._config,
+            holiday_types_constraints_template,
+        )
+        return TSQLGenerator._generate_file(
+            file_no,
+            self._config.holidays.holidays_table_name,
+            base_path,
+            self._config,
+            holidays_constraints_template,
+        )
 
     def _generate_folder_path(self, folder_no: int, name: str) -> Path:
         # note: Internal use. Does not attempt to sanitize folder name.
