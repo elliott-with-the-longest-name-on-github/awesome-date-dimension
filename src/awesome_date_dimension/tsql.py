@@ -1,10 +1,13 @@
 import shutil
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable
 
 from ._internal.tsql_templates.dim_calendar_month_insert_template import (
     dim_calendar_month_insert_template,
+)
+from ._internal.tsql_templates.dim_calendar_month_refresh_template import (
+    dim_calendar_month_refresh_template,
 )
 from ._internal.tsql_templates.dim_date_insert_template import dim_date_insert_template
 from ._internal.tsql_templates.dim_date_refresh_template import (
@@ -12,6 +15,9 @@ from ._internal.tsql_templates.dim_date_refresh_template import (
 )
 from ._internal.tsql_templates.dim_fiscal_month_insert_template import (
     dim_fiscal_month_insert_template,
+)
+from ._internal.tsql_templates.dim_fiscal_month_refresh_template import (
+    dim_fiscal_month_refresh_template,
 )
 from ._internal.tsql_templates.holiday_types_insert_template import (
     holiday_types_insert_template,
@@ -667,29 +673,22 @@ class TSQLGenerator:
         return folder_no + 1
 
     def _generate_holiday_type_build_script(self, file_no: int, base_path: Path) -> int:
-        cfg = self._config.holidays
-        scriptdef = holiday_types_insert_template(
-            cfg.holiday_types_schema_name,
-            cfg.holiday_types_table_name,
-            cfg.holiday_types_columns.holiday_type_name.name,
-            cfg.holiday_types,
+        return TSQLGenerator._generate_file(
+            file_no,
+            self._config.holidays.holiday_types_table_name,
+            base_path,
+            self._config,
+            holiday_types_insert_template,
         )
-        file_path = base_path / TSQLGenerator._get_sql_filename(
-            file_no, cfg.holiday_types_table_name
-        )
-        TSQLGenerator._assert_filepath_available(file_path)
-        file_path.write_text(scriptdef)
-        return file_no + 1
 
     def _generate_holidays_build_script(self, file_no: int, base_path: Path) -> int:
-        cfg = self._config.holidays
-        scriptdef = holidays_insert_template(cfg)
-        file_path = base_path / TSQLGenerator._get_sql_filename(
-            file_no, cfg.holidays_table_name
+        return TSQLGenerator._generate_file(
+            file_no,
+            self._config.holidays.holidays_table_name,
+            base_path,
+            self._config,
+            holidays_insert_template,
         )
-        TSQLGenerator._assert_filepath_available(file_path)
-        file_path.write_text(scriptdef)
-        return file_no + 1
 
     def _generate_holiday_build_scripts(self, file_no: int, base_path: Path) -> int:
         file_no = self._generate_holiday_type_build_script(file_no, base_path)
@@ -697,35 +696,35 @@ class TSQLGenerator:
         return file_no
 
     def _generate_dim_date_build_scripts(self, file_no: int, base_path: Path) -> int:
-        scriptdef = dim_date_insert_template(self._config)
-        file_path = base_path / TSQLGenerator._get_sql_filename(
-            file_no, self._config.dim_date.table_name
+        return TSQLGenerator._generate_file(
+            file_no,
+            self._config.dim_date.table_name,
+            base_path,
+            self._config,
+            dim_date_insert_template,
         )
-        TSQLGenerator._assert_filepath_available(file_path)
-        file_path.write_text(scriptdef)
-        return file_no + 1
 
     def _generate_dim_fiscal_month_build_scripts(
         self, file_no: int, base_path: Path
     ) -> int:
-        scriptdef = dim_fiscal_month_insert_template(self._config)
-        file_path = base_path / TSQLGenerator._get_sql_filename(
-            file_no, self._config.dim_fiscal_month.table_name
+        return TSQLGenerator._generate_file(
+            file_no,
+            self._config.dim_fiscal_month.table_name,
+            base_path,
+            self._config,
+            dim_fiscal_month_insert_template,
         )
-        TSQLGenerator._assert_filepath_available(file_path)
-        file_path.write_text(scriptdef)
-        return file_no + 1
 
     def _generate_dim_calendar_month_build_scripts(
         self, file_no: int, base_path: Path
     ) -> int:
-        scriptdef = dim_calendar_month_insert_template(self._config)
-        file_path = base_path / TSQLGenerator._get_sql_filename(
-            file_no, self._config.dim_calendar_month.table_name
+        return TSQLGenerator._generate_file(
+            file_no,
+            self._config.dim_calendar_month.table_name,
+            base_path,
+            self._config,
+            dim_calendar_month_insert_template,
         )
-        TSQLGenerator._assert_filepath_available(file_path)
-        file_path.write_text(scriptdef)
-        return file_no + 1
 
     def _generate_refresh_procs(self, folder_no: int) -> int:
         file_no = 0
@@ -738,25 +737,35 @@ class TSQLGenerator:
         return folder_no + 1
 
     def _generate_dim_date_refresh_procs(self, file_no: int, base_path: Path) -> int:
-        scriptdef = dim_date_refresh_template(self._config)
-        file_path = base_path / TSQLGenerator._get_sql_filename(
-            file_no, self._config.dim_date.table_name
+        return TSQLGenerator._generate_file(
+            file_no,
+            self._config.dim_date.table_name,
+            base_path,
+            self._config,
+            dim_date_refresh_template,
         )
-        TSQLGenerator._assert_filepath_available(file_path)
-        file_path.write_text(scriptdef)
-        return file_no + 1
 
     def _generate_dim_fiscal_month_refresh_procs(
         self, file_no: int, base_path: Path
     ) -> int:
-        # raise NotImplementedError()
-        pass
+        return TSQLGenerator._generate_file(
+            file_no,
+            self._config.dim_fiscal_month.table_name,
+            base_path,
+            self._config,
+            dim_fiscal_month_refresh_template,
+        )
 
     def _generate_dim_calendar_month_refresh_procs(
         self, file_no: int, base_path: Path
     ) -> int:
-        # raise NotImplementedError()
-        pass
+        return TSQLGenerator._generate_file(
+            file_no,
+            self._config.dim_calendar_month.table_name,
+            base_path,
+            self._config,
+            dim_calendar_month_refresh_template,
+        )
 
     def _generate_table_constraints(self, folder_no: int) -> int:
         file_no = 0
@@ -805,6 +814,20 @@ class TSQLGenerator:
         if file_no < 0 or file_no > 99:
             raise ValueError("file_no must be between 0 and 99 inclusive")
         return f"{str(file_no).zfill(2)}-{file_name}.sql"
+
+    @staticmethod
+    def _generate_file(
+        file_no: int,
+        table_name: str,
+        base_path: Path,
+        config: Config,
+        script_gen_func: Callable[[Config], str],
+    ) -> int:
+        scriptdef = script_gen_func(config)
+        file_path = base_path / TSQLGenerator._get_sql_filename(file_no, table_name)
+        TSQLGenerator._assert_filepath_available(file_path)
+        file_path.write_text(scriptdef)
+        return file_no + 1
 
     @staticmethod
     def _get_constraint_str(constraint_def: str) -> str:

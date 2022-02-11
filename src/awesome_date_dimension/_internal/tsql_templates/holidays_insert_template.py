@@ -1,7 +1,8 @@
-from ...config import HolidayConfig
+from ...config import Config
 
 
-def holidays_insert_template(holiday_config: HolidayConfig):
+def holidays_insert_template(config: Config):
+    holiday_config = config.holidays
     join_str = ",\n    "
     holidays = []
     for cal in holiday_config.holiday_calendars:
