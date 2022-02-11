@@ -3,6 +3,9 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
 
+from ._internal.tsql_templates.dim_calendar_month_insert_template import (
+    dim_calendar_month_insert_template,
+)
 from ._internal.tsql_templates.dim_date_insert_template import dim_date_insert_template
 from ._internal.tsql_templates.dim_fiscal_month_insert_template import (
     dim_fiscal_month_insert_template,
@@ -713,8 +716,13 @@ class TSQLGenerator:
     def _generate_dim_calendar_month_build_scripts(
         self, file_no: int, base_path: Path
     ) -> int:
-        # raise NotImplementedError()
-        pass
+        scriptdef = dim_calendar_month_insert_template(self._config)
+        file_path = base_path / TSQLGenerator._get_sql_filename(
+            file_no, self._config.dim_calendar_month.table_name
+        )
+        TSQLGenerator._assert_filepath_available(file_path)
+        file_path.write_text(scriptdef)
+        return file_no + 1
 
     def _generate_refresh_procs(self, folder_no: int) -> int:
         file_no = 0

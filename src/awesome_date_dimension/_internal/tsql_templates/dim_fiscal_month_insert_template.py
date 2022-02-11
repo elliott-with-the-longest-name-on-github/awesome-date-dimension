@@ -45,7 +45,7 @@ def dim_fiscal_month_insert_template(config: Config) -> str:
     GROUP BY {dd_cols.fiscal_current_month_start.name}, {dd_cols.fiscal_current_month_end.name}
 )
 
-INSERT INTO dbo.DimFiscalMonth (
+INSERT INTO {dfm_conf.table_schema}.{dfm_conf.table_name} (
   {dfm_cols.month_start_key.name},
   {dfm_cols.month_end_key.name},
   {dfm_cols.month_start_date.name},
