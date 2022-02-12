@@ -124,8 +124,8 @@ INSERT INTO {dfm_conf.table_schema}.{dfm_conf.table_name} (
 SELECT  
   base.{dfm_cols.month_start_key.name},
   base.{dfm_cols.month_end_key.name},
-  {dfm_cols.month_start_date.name} = startdate.{dd_cols.date_key.name},
-  {dfm_cols.month_end_date.name} = enddate.{dd_cols.date_key.name},
+  {dfm_cols.month_start_date.name} = startdate.{dd_cols.the_date.name},
+  {dfm_cols.month_end_date.name} = enddate.{dd_cols.the_date.name},
   {dfm_cols.month_start_iso_date_name.name} = startdate.{dd_cols.iso_date_name.name},
   {dfm_cols.month_end_iso_date_name.name} = enddate.{dd_cols.iso_date_name.name},
   {dfm_cols.month_start_american_date_name.name} = startdate.{dd_cols.american_date_name.name},

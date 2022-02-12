@@ -20,7 +20,13 @@ def dim_fiscal_month_refresh_template(config: Config) -> str:
     COMMIT TRANSACTION;
   END TRY
   BEGIN CATCH
-    EXEC sp_GetErrorInfo;
+    SELECT   
+      ERROR_NUMBER() AS ErrorNumber,
+      ERROR_SEVERITY() AS ErrorSeverity,
+      ERROR_STATE() AS ErrorState,
+      ERROR_LINE () AS ErrorLine,
+      ERROR_PROCEDURE() AS ErrorProcedure,
+      ERROR_MESSAGE() AS ErrorMessage;
     IF @@TRANCOUNT > 0
       ROLLBACK TRANSACTION;
     THROW;

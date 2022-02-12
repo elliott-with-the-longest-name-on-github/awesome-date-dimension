@@ -292,7 +292,7 @@ BaseDatesThird AS (
       FiscalYearEnd
     ),
 
-    FiscalPeriodYearReferenceTotday = IIF(
+    FiscalPeriodYearReferenceToday = IIF(
       @FiscalYearPeriodEndMatchesCalendar = 0,
       FiscalYearStartToday,
       FiscalYearEndToday

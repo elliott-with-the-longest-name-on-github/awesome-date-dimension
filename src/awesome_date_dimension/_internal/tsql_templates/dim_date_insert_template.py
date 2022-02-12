@@ -343,7 +343,7 @@ BaseDatesThird AS (
       FiscalYearEnd
     ),
 
-    FiscalPeriodYearReferenceTotday = IIF(
+    FiscalPeriodYearReferenceToday = IIF(
       @FiscalYearPeriodEndMatchesCalendar = 0,
       FiscalYearStartToday,
       FiscalYearEndToday
@@ -484,7 +484,7 @@ BaseDatesFifth AS (
         YEAR(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
                 DATEDIFF(quarter, 0, TheDate),
@@ -495,7 +495,7 @@ BaseDatesFifth AS (
         MONTH(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
                 DATEDIFF(quarter, 0, TheDate),
@@ -509,7 +509,7 @@ BaseDatesFifth AS (
         YEAR(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
                 DATEDIFF(quarter, 0, TheDate) + 1,
@@ -520,7 +520,7 @@ BaseDatesFifth AS (
         MONTH(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
                 DATEDIFF(quarter, 0, TheDate) + 1,
@@ -544,7 +544,7 @@ BaseDatesFifth AS (
         YEAR(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
                 DATEDIFF(quarter, 0, @TodayInLocal),
@@ -555,7 +555,7 @@ BaseDatesFifth AS (
         MONTH(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
                 DATEDIFF(quarter, 0, @TodayInLocal),
@@ -569,7 +569,7 @@ BaseDatesFifth AS (
         YEAR(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
                 DATEDIFF(quarter, 0, @TodayInLocal) + 1,
@@ -580,7 +580,7 @@ BaseDatesFifth AS (
         MONTH(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
                 DATEDIFF(quarter, 0, @TodayInLocal) + 1,
@@ -1743,7 +1743,7 @@ Main AS (
       -- 0
       FiscalPriorMonthFlag = IIF(
         @TodayInLocal BETWEEN 
-          PriorFiscalMonthStart AND PriorFiscalMonthEnd,
+          NextFiscalMonthStart AND NextFiscalMonthEnd,
         1,
         0
       ),
@@ -1751,7 +1751,7 @@ Main AS (
       -- 0
       FiscalNextMonthFlag = IIF(
         @TodayInLocal BETWEEN 
-          NextFiscalMonthStart AND NextFiscalMonthEnd,
+          PriorFiscalMonthStart AND PriorFiscalMonthEnd,
         1,
         0
       ),
@@ -1766,7 +1766,7 @@ Main AS (
       -- 0
       FiscalPriorQuarterFlag = IIF(
         @TodayInLocal BETWEEN 
-          PriorFiscalQuarterStart AND PriorFiscalQuarterEnd,
+          NextFiscalQuarterStart AND NextFiscalQuarterEnd,
         1,
         0
       ),
@@ -1774,7 +1774,7 @@ Main AS (
       -- 0
       FiscalNextQuarterFlag = IIF(
         @TodayInLocal BETWEEN 
-          NextFiscalQuarterStart AND NextFiscalQuarterEnd,
+          PriorFiscalQuarterStart AND PriorFiscalQuarterEnd,
         1,
         0
       ),
@@ -1789,7 +1789,7 @@ Main AS (
       -- 0
       FiscalPriorYearFlag = IIF(
         @TodayInLocal BETWEEN 
-          PriorFiscalYearStart AND PriorFiscalYearEnd,
+          NextFiscalYearStart AND NextFiscalYearEnd,
         1,
         0
       ),
@@ -1797,7 +1797,7 @@ Main AS (
       -- 0
       FiscalNextYearFlag = IIF(
         @TodayInLocal BETWEEN 
-          NextFiscalYearStart AND NextFiscalYearEnd,
+          PriorFiscalYearStart AND PriorFiscalYearEnd,
         1,
         0
       ),
