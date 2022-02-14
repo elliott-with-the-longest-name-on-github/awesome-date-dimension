@@ -1,10 +1,13 @@
 from ...config import Config
 from .dim_fiscal_month_insert_template import dim_fiscal_month_insert_template
+from .tsql_columns import TSQLDimFiscalMonthColumns
 
 
-def dim_fiscal_month_refresh_template(config: Config) -> str:
+def dim_fiscal_month_refresh_template(
+    config: Config, columns: TSQLDimFiscalMonthColumns
+) -> str:
     indentation_level = "    "
-    insert_script = dim_fiscal_month_insert_template(config)
+    insert_script = dim_fiscal_month_insert_template(config, columns)
     indented_script = "\n".join(
         map(lambda line: indentation_level + line, insert_script.split("\n"))
     )
