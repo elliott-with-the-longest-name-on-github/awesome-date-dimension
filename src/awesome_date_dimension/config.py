@@ -916,7 +916,7 @@ class DimDateConfig:
     table_schema: str = "dbo"
     table_name: str = "DimDate"
     columns: DimDateColumns = field(default_factory=lambda: DimDateColumns())
-    column_name_factory: Callable[[str], str] = None
+    column_factory: Callable[[str, Column], Column] = None
 
     def __post_init__(self):
         col_dict = asdict(self.columns)
@@ -926,12 +926,15 @@ class DimDateConfig:
             distinct_sort_keys
         ), "there was a duplicate sort key in the column definitions for DimDateColumn."
 
-        if self.column_name_factory is not None:
+        if self.column_factory is not None:
             new_cols: dict[str, Column] = {}
             for k, v in col_dict.values():
-                new_cols[k] = Column(
-                    self.column_name_factory(v["name"]), v["include"], v["sort_index"]
-                )
+                new_col = self.column_factory(k, v)
+                assert isinstance(
+                    new_col, Column
+                ), f"column_factory returned a value that was not a column. This is not allowed. Value: {new_col}"
+                new_cols[k] = self.column_factory(v)
+
             self.columns = DimCalendarMonthColumns(**new_cols)
 
 
@@ -1150,7 +1153,7 @@ class DimFiscalMonthConfig:
     columns: DimFiscalMonthColumns = field(
         default_factory=lambda: DimFiscalMonthColumns()
     )
-    column_name_factory: Callable[[str], str] = None
+    column_factory: Callable[[str, Column], Column] = None
 
     def __post_init__(self):
         col_dict = asdict(self.columns)
@@ -1160,12 +1163,15 @@ class DimFiscalMonthConfig:
             distinct_sort_keys
         ), "there was a duplicate sort key in the column definitions for DimFiscalMonthColumn."
 
-        if self.column_name_factory is not None:
+        if self.column_factory is not None:
             new_cols: dict[str, Column] = {}
             for k, v in col_dict.values():
-                new_cols[k] = Column(
-                    self.column_name_factory(v["name"]), v["include"], v["sort_index"]
-                )
+                new_col = self.column_factory(k, v)
+                assert isinstance(
+                    new_col, Column
+                ), f"column_factory returned a value that was not a column. This is not allowed. Value: {new_col}"
+                new_cols[k] = self.column_factory(v)
+
             self.columns = DimCalendarMonthColumns(**new_cols)
 
 
@@ -1384,7 +1390,7 @@ class DimCalendarMonthConfig:
     columns: DimCalendarMonthColumns = field(
         default_factory=lambda: DimCalendarMonthColumns()
     )
-    column_name_factory: Callable[[str], str] = None
+    column_factory: Callable[[str, Column], Column] = None
 
     def __post_init__(self):
         col_dict = asdict(self.columns)
@@ -1394,12 +1400,15 @@ class DimCalendarMonthConfig:
             distinct_sort_keys
         ), "there was a duplicate sort key in the column definitions for DimCalendarMonthColumn."
 
-        if self.column_name_factory is not None:
+        if self.column_factory is not None:
             new_cols: dict[str, Column] = {}
             for k, v in col_dict.values():
-                new_cols[k] = Column(
-                    self.column_name_factory(v["name"]), v["include"], v["sort_index"]
-                )
+                new_col = self.column_factory(k, v)
+                assert isinstance(
+                    new_col, Column
+                ), f"column_factory returned a value that was not a column. This is not allowed. Value: {new_col}"
+                new_cols[k] = self.column_factory(v)
+
             self.columns = DimCalendarMonthColumns(**new_cols)
 
 
