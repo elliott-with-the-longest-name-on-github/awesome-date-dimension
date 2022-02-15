@@ -9,3 +9,12 @@ repos:
     - id: isort
       args: ["--profile", "black"]
       name: isort (python)
+- repo: local
+  hooks:
+  - id: unittest
+    name: unittest
+    entry: python -m unittest discover -s tests
+    language: python
+    'types': [python]
+    pass_filenames: false
+    stages: [commit]
