@@ -1,7 +1,7 @@
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from datetime import date, datetime, tzinfo
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable, Iterable, Union, ValuesView
 
 from pytz import timezone
 
@@ -55,12 +55,22 @@ class HolidayCalendar:
     holiday_type: HolidayType
     holidays: list[Holiday]
 
+    def __post_init__(self):
+        assert len(self.holidays) == len(
+            set(self.holidays)
+        ), f"detected duplicate holidays in the HolidayCalendar for {self.holiday_type}. This is not allowed."
+
+        dates = [h.holiday_date for h in self.holidays]
+        assert len(dates) == len(
+            set(dates)
+        ), f"detected holidays with duplicate dates in the HolidayCalendar for {self.holiday_type}. This is not allowed."
+
 
 def default_company_holidays() -> HolidayCalendar:
     return HolidayCalendar(
         HolidayType("Company Holiday", "Company", included_in_business_day_calc=True),
         [
-            Holiday("New Year" "s Day", datetime.fromisoformat("2012-01-02")),
+            Holiday("New Year's Day", datetime.fromisoformat("2012-01-02")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2012-01-16")
             ),
@@ -71,7 +81,7 @@ def default_company_holidays() -> HolidayCalendar:
             Holiday("Friday After Thanksgiving", datetime.fromisoformat("2012-11-23")),
             Holiday("Christmas Eve", datetime.fromisoformat("2012-12-24")),
             Holiday("Christmas Day", datetime.fromisoformat("2012-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2013-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2013-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2013-01-21")
             ),
@@ -82,7 +92,7 @@ def default_company_holidays() -> HolidayCalendar:
             Holiday("Friday After Thanksgiving", datetime.fromisoformat("2013-11-29")),
             Holiday("Christmas Eve", datetime.fromisoformat("2013-12-24")),
             Holiday("Christmas Day", datetime.fromisoformat("2013-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2014-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2014-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2014-01-20")
             ),
@@ -92,7 +102,7 @@ def default_company_holidays() -> HolidayCalendar:
             Holiday("Friday After Thanksgiving", datetime.fromisoformat("2014-11-28")),
             Holiday("Christmas Eve", datetime.fromisoformat("2014-12-24")),
             Holiday("Christmas Day", datetime.fromisoformat("2014-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2015-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2015-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2015-01-19")
             ),
@@ -103,7 +113,7 @@ def default_company_holidays() -> HolidayCalendar:
             Holiday("Friday After Thanksgiving", datetime.fromisoformat("2015-11-27")),
             Holiday("Christmas Eve", datetime.fromisoformat("2015-12-24")),
             Holiday("Christmas Day", datetime.fromisoformat("2015-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2016-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2016-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2016-01-18")
             ),
@@ -114,7 +124,7 @@ def default_company_holidays() -> HolidayCalendar:
             Holiday("Friday After Thanksgiving", datetime.fromisoformat("2016-11-25")),
             Holiday("Christmas Eve", datetime.fromisoformat("2016-12-23")),
             Holiday("Christmas Day", datetime.fromisoformat("2016-12-26")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2017-01-02")),
+            Holiday("New Year's Day", datetime.fromisoformat("2017-01-02")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2017-01-16")
             ),
@@ -125,7 +135,7 @@ def default_company_holidays() -> HolidayCalendar:
             Holiday("Friday After Thanksgiving", datetime.fromisoformat("2017-11-24")),
             Holiday("Christmas Eve", datetime.fromisoformat("2017-12-25")),
             Holiday("Christmas Day", datetime.fromisoformat("2017-12-26")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2018-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2018-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2018-01-15")
             ),
@@ -136,7 +146,7 @@ def default_company_holidays() -> HolidayCalendar:
             Holiday("Friday After Thanksgiving", datetime.fromisoformat("2018-11-23")),
             Holiday("Christmas Eve", datetime.fromisoformat("2018-12-24")),
             Holiday("Christmas Day", datetime.fromisoformat("2018-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2019-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2019-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2019-01-21")
             ),
@@ -147,7 +157,7 @@ def default_company_holidays() -> HolidayCalendar:
             Holiday("Friday After Thanksgiving", datetime.fromisoformat("2019-11-29")),
             Holiday("Christmas Eve", datetime.fromisoformat("2019-12-24")),
             Holiday("Christmas Day", datetime.fromisoformat("2019-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2020-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2020-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2020-01-20")
             ),
@@ -158,7 +168,7 @@ def default_company_holidays() -> HolidayCalendar:
             Holiday("Friday After Thanksgiving", datetime.fromisoformat("2020-11-27")),
             Holiday("Christmas Eve", datetime.fromisoformat("2020-12-24")),
             Holiday("Christmas Day", datetime.fromisoformat("2020-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2021-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2021-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2021-01-18")
             ),
@@ -168,7 +178,7 @@ def default_company_holidays() -> HolidayCalendar:
             Holiday("Friday After Thanksgiving", datetime.fromisoformat("2021-11-26")),
             Holiday("Christmas Eve", datetime.fromisoformat("2021-12-23")),
             Holiday("Christmas Day", datetime.fromisoformat("2021-12-24")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2021-12-31")),
+            Holiday("New Year's Day", datetime.fromisoformat("2021-12-31")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2022-01-17")
             ),
@@ -179,7 +189,7 @@ def default_company_holidays() -> HolidayCalendar:
             Holiday("Friday After Thanksgiving", datetime.fromisoformat("2022-11-25")),
             Holiday("Christmas Eve", datetime.fromisoformat("2022-12-23")),
             Holiday("Christmas Day", datetime.fromisoformat("2022-12-26")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2023-01-02")),
+            Holiday("New Year's Day", datetime.fromisoformat("2023-01-02")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2023-01-16")
             ),
@@ -190,7 +200,7 @@ def default_company_holidays() -> HolidayCalendar:
             Holiday("Friday After Thanksgiving", datetime.fromisoformat("2023-11-24")),
             Holiday("Christmas Eve", datetime.fromisoformat("2023-12-25")),
             Holiday("Christmas Day", datetime.fromisoformat("2023-12-26")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2024-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2024-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2024-01-15")
             ),
@@ -201,7 +211,7 @@ def default_company_holidays() -> HolidayCalendar:
             Holiday("Friday After Thanksgiving", datetime.fromisoformat("2024-11-29")),
             Holiday("Christmas Eve", datetime.fromisoformat("2024-12-24")),
             Holiday("Christmas Day", datetime.fromisoformat("2024-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2025-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2025-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2025-01-20")
             ),
@@ -220,11 +230,11 @@ def default_us_public_holidays() -> HolidayCalendar:
     return HolidayCalendar(
         HolidayType("US Public Holiday", "USPublic"),
         [
-            Holiday("New Year" "s Day", datetime.fromisoformat("2012-01-02")),
+            Holiday("New Year's Day", datetime.fromisoformat("2012-01-02")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2012-01-16")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2012-02-20")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2012-02-20")),
             Holiday("Memorial Day", datetime.fromisoformat("2012-05-28")),
             Holiday("Independence Day", datetime.fromisoformat("2012-07-04")),
             Holiday("Labor Day", datetime.fromisoformat("2012-09-03")),
@@ -232,11 +242,11 @@ def default_us_public_holidays() -> HolidayCalendar:
             Holiday("Veterans Day", datetime.fromisoformat("2012-11-12")),
             Holiday("Thanksgiving Day", datetime.fromisoformat("2012-11-22")),
             Holiday("Christmas Day", datetime.fromisoformat("2012-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2013-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2013-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2013-01-21")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2013-02-18")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2013-02-18")),
             Holiday("Memorial Day", datetime.fromisoformat("2013-05-27")),
             Holiday("Independence Day", datetime.fromisoformat("2013-07-04")),
             Holiday("Labor Day", datetime.fromisoformat("2013-09-02")),
@@ -244,11 +254,11 @@ def default_us_public_holidays() -> HolidayCalendar:
             Holiday("Veterans Day", datetime.fromisoformat("2013-11-11")),
             Holiday("Thanksgiving Day", datetime.fromisoformat("2013-11-28")),
             Holiday("Christmas Day", datetime.fromisoformat("2013-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2014-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2014-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2014-01-20")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2014-02-17")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2014-02-17")),
             Holiday("Memorial Day", datetime.fromisoformat("2014-05-26")),
             Holiday("Independence Day", datetime.fromisoformat("2014-07-04")),
             Holiday("Labor Day", datetime.fromisoformat("2014-09-01")),
@@ -256,11 +266,11 @@ def default_us_public_holidays() -> HolidayCalendar:
             Holiday("Veterans Day", datetime.fromisoformat("2014-11-11")),
             Holiday("Thanksgiving Day", datetime.fromisoformat("2014-11-27")),
             Holiday("Christmas Day", datetime.fromisoformat("2014-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2015-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2015-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2015-01-19")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2015-02-16")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2015-02-16")),
             Holiday("Memorial Day", datetime.fromisoformat("2015-05-25")),
             Holiday("Independence Day", datetime.fromisoformat("2015-07-03")),
             Holiday("Labor Day", datetime.fromisoformat("2015-09-07")),
@@ -268,11 +278,11 @@ def default_us_public_holidays() -> HolidayCalendar:
             Holiday("Veterans Day", datetime.fromisoformat("2015-11-11")),
             Holiday("Thanksgiving Day", datetime.fromisoformat("2015-11-26")),
             Holiday("Christmas Day", datetime.fromisoformat("2015-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2016-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2016-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2016-01-18")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2016-02-15")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2016-02-15")),
             Holiday("Memorial Day", datetime.fromisoformat("2016-05-30")),
             Holiday("Independence Day", datetime.fromisoformat("2016-07-04")),
             Holiday("Labor Day", datetime.fromisoformat("2016-09-05")),
@@ -280,11 +290,11 @@ def default_us_public_holidays() -> HolidayCalendar:
             Holiday("Veterans Day", datetime.fromisoformat("2016-11-11")),
             Holiday("Thanksgiving Day", datetime.fromisoformat("2016-11-24")),
             Holiday("Christmas Day", datetime.fromisoformat("2016-12-26")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2017-01-02")),
+            Holiday("New Year's Day", datetime.fromisoformat("2017-01-02")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2017-01-16")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2017-02-20")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2017-02-20")),
             Holiday("Memorial Day", datetime.fromisoformat("2017-05-29")),
             Holiday("Independence Day", datetime.fromisoformat("2017-07-04")),
             Holiday("Labor Day", datetime.fromisoformat("2017-09-04")),
@@ -292,11 +302,11 @@ def default_us_public_holidays() -> HolidayCalendar:
             Holiday("Veterans Day", datetime.fromisoformat("2017-11-10")),
             Holiday("Thanksgiving Day", datetime.fromisoformat("2017-11-23")),
             Holiday("Christmas Day", datetime.fromisoformat("2017-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2018-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2018-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2018-01-15")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2018-02-19")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2018-02-19")),
             Holiday("Memorial Day", datetime.fromisoformat("2018-05-28")),
             Holiday("Independence Day", datetime.fromisoformat("2018-07-04")),
             Holiday("Labor Day", datetime.fromisoformat("2018-09-03")),
@@ -304,11 +314,11 @@ def default_us_public_holidays() -> HolidayCalendar:
             Holiday("Veterans Day", datetime.fromisoformat("2018-11-12")),
             Holiday("Thanksgiving Day", datetime.fromisoformat("2018-11-22")),
             Holiday("Christmas Day", datetime.fromisoformat("2018-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2019-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2019-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2019-01-21")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2019-02-18")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2019-02-18")),
             Holiday("Memorial Day", datetime.fromisoformat("2019-05-27")),
             Holiday("Independence Day", datetime.fromisoformat("2019-07-04")),
             Holiday("Labor Day", datetime.fromisoformat("2019-09-02")),
@@ -316,11 +326,11 @@ def default_us_public_holidays() -> HolidayCalendar:
             Holiday("Veterans Day", datetime.fromisoformat("2019-11-11")),
             Holiday("Thanksgiving Day", datetime.fromisoformat("2019-11-28")),
             Holiday("Christmas Day", datetime.fromisoformat("2019-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2020-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2020-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2020-01-20")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2020-02-17")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2020-02-17")),
             Holiday("Memorial Day", datetime.fromisoformat("2020-05-25")),
             Holiday("Independence Day", datetime.fromisoformat("2020-07-03")),
             Holiday("Labor Day", datetime.fromisoformat("2020-09-07")),
@@ -328,11 +338,11 @@ def default_us_public_holidays() -> HolidayCalendar:
             Holiday("Veterans Day", datetime.fromisoformat("2020-11-11")),
             Holiday("Thanksgiving Day", datetime.fromisoformat("2020-11-26")),
             Holiday("Christmas Day", datetime.fromisoformat("2020-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2021-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2021-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2021-01-18")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2021-02-15")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2021-02-15")),
             Holiday("Memorial Day", datetime.fromisoformat("2021-05-31")),
             Holiday("Independence Day", datetime.fromisoformat("2021-07-05")),
             Holiday("Labor Day", datetime.fromisoformat("2021-09-06")),
@@ -340,11 +350,11 @@ def default_us_public_holidays() -> HolidayCalendar:
             Holiday("Veterans Day", datetime.fromisoformat("2021-11-11")),
             Holiday("Thanksgiving Day", datetime.fromisoformat("2021-11-25")),
             Holiday("Christmas Day", datetime.fromisoformat("2021-12-24")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2021-12-31")),
+            Holiday("New Year's Day", datetime.fromisoformat("2021-12-31")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2022-01-17")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2022-02-21")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2022-02-21")),
             Holiday("Memorial Day", datetime.fromisoformat("2022-05-30")),
             Holiday("Independence Day", datetime.fromisoformat("2022-07-04")),
             Holiday("Labor Day", datetime.fromisoformat("2022-09-05")),
@@ -352,11 +362,11 @@ def default_us_public_holidays() -> HolidayCalendar:
             Holiday("Veterans Day", datetime.fromisoformat("2022-11-11")),
             Holiday("Thanksgiving Day", datetime.fromisoformat("2022-11-24")),
             Holiday("Christmas Day", datetime.fromisoformat("2022-12-26")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2023-01-02")),
+            Holiday("New Year's Day", datetime.fromisoformat("2023-01-02")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2023-01-16")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2023-02-20")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2023-02-20")),
             Holiday("Memorial Day", datetime.fromisoformat("2023-05-29")),
             Holiday("Independence Day", datetime.fromisoformat("2023-07-04")),
             Holiday("Labor Day", datetime.fromisoformat("2023-09-04")),
@@ -364,11 +374,11 @@ def default_us_public_holidays() -> HolidayCalendar:
             Holiday("Veterans Day", datetime.fromisoformat("2023-11-10")),
             Holiday("Thanksgiving Day", datetime.fromisoformat("2023-11-23")),
             Holiday("Christmas Day", datetime.fromisoformat("2023-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2024-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2024-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2024-01-15")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2024-02-19")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2024-02-19")),
             Holiday("Memorial Day", datetime.fromisoformat("2024-05-27")),
             Holiday("Independence Day", datetime.fromisoformat("2024-07-04")),
             Holiday("Labor Day", datetime.fromisoformat("2024-09-02")),
@@ -376,11 +386,11 @@ def default_us_public_holidays() -> HolidayCalendar:
             Holiday("Veterans Day", datetime.fromisoformat("2024-11-11")),
             Holiday("Thanksgiving Day", datetime.fromisoformat("2024-11-28")),
             Holiday("Christmas Day", datetime.fromisoformat("2024-12-25")),
-            Holiday("New Year" "s Day", datetime.fromisoformat("2025-01-01")),
+            Holiday("New Year's Day", datetime.fromisoformat("2025-01-01")),
             Holiday(
                 "Martin Luther King, Jr. Day", datetime.fromisoformat("2025-01-20")
             ),
-            Holiday("Presidents" " Day", datetime.fromisoformat("2025-02-17")),
+            Holiday("Presidents' Day", datetime.fromisoformat("2025-02-17")),
             Holiday("Memorial Day", datetime.fromisoformat("2025-05-26")),
             Holiday("Independence Day", datetime.fromisoformat("2025-07-04")),
             Holiday("Labor Day", datetime.fromisoformat("2025-09-01")),
@@ -399,19 +409,36 @@ class Column:
     sort_index: int
 
 
+def _assert_no_duplicate_colnames(collection_name: str, cols: Iterable[Column]):
+    colnames = [c.name for c in cols]
+    assert len(colnames) == len(
+        set(colnames)
+    ), f"detected duplicate column names in {collection_name}. This is not allowed."
+
+
+def _assert_no_duplicate_col_sortkeys(collection_name: str, cols: Iterable[Column]):
+    indices = [c.sort_index for c in cols]
+    assert len(indices) == len(
+        set(indices)
+    ), f"detected duplicate sort_indices in {collection_name}. This is not allowed."
+
+
 @dataclass(frozen=True)
 class HolidayTypesColumns:
     holiday_type_key: Column = field(
-        default_factory=lambda: Column("HolidayTypeKey", True, 0)
+        default_factory=lambda: Column("HolidayTypeKey", True, 1000)
     )
     holiday_type_name: Column = field(
-        default_factory=lambda: Column("HolidayTypeName", True, 1)
+        default_factory=lambda: Column("HolidayTypeName", True, 2000)
     )
 
     def __post_init__(self):
         assert (
             self.holiday_type_key.include and self.holiday_type_name.include
         ), "all HolidayTypes columns must be included."
+        col_list = [self.holiday_type_key, self.holiday_type_name]
+        _assert_no_duplicate_colnames("HolidayTypesColumns", col_list)
+        _assert_no_duplicate_col_sortkeys("HolidayTypesColumns", col_list)
 
 
 @dataclass(frozen=True)
@@ -428,6 +455,9 @@ class HolidaysColumns:
             and self.holiday_name.include
             and self.holiday_type_key.include
         ), "all Holidays columns must be included."
+        col_list = [self.date_key, self.holiday_name, self.holiday_type_key]
+        _assert_no_duplicate_colnames("HolidayColumns", col_list)
+        _assert_no_duplicate_col_sortkeys("HolidayColumns", col_list)
 
 
 @dataclass(frozen=True)
@@ -451,6 +481,10 @@ class HolidayConfig:
 
     def __post_init__(self):
         if self.generate_holidays:
+            assert (
+                self.holiday_types_schema_name + self.holiday_types_table_name
+                != self.holidays_schema_name + self.holidays_table_name
+            ), "holidays table name and holiday types table name are the same. This is not allowed."
             holiday_types = [cal.holiday_type for cal in self.holiday_calendars]
             holiday_type_names = [t.name for t in holiday_types]
             holiday_type_prefixes = [t.generated_column_prefix for t in holiday_types]
@@ -927,6 +961,15 @@ class DimDateColumns:
         default_factory=lambda: Column("FiscalYearlyBurnup", True, 161000)
     )
 
+    def __post_init__(self):
+        field_names = (f.name for f in fields(self))
+        cols = [self.__dict__[name] for name in field_names]
+        assert (
+            self.date_key.include
+        ), "DimDateColumns.date_key must be included, as it is the table key."
+        _assert_no_duplicate_colnames("DimDateColumns", cols)
+        _assert_no_duplicate_col_sortkeys("DimDateColumns", cols)
+
 
 @dataclass(frozen=True)
 class DimDateConfig:
@@ -936,23 +979,17 @@ class DimDateConfig:
     column_factory: Callable[[str, Column], Column] = None
 
     def __post_init__(self):
-        col_dict = asdict(self.columns)
-        sort_keys = [v["sort_index"] for v in col_dict.values()]
-        distinct_sort_keys = set(sort_keys)
-        assert len(sort_keys) == len(
-            distinct_sort_keys
-        ), "there was a duplicate sort key in the column definitions for DimDateColumn."
-
         if self.column_factory is not None:
+            col_fields = fields(self.columns)
             new_cols: dict[str, Column] = {}
-            for k, v in col_dict.values():
-                new_col = self.column_factory(k, v)
+            for f in col_fields:
+                col: Column = self.columns.__dict__[f.name]
+                new_col = self.column_factory(f.name, col)
                 assert isinstance(
                     new_col, Column
                 ), f"column_factory returned a value that was not a column. This is not allowed. Value: {new_col}"
-                new_cols[k] = self.column_factory(v)
-
-            self.columns = DimCalendarMonthColumns(**new_cols)
+                new_cols[f.name] = new_col
+            object.__setattr__(self, "columns", DimDateColumns(**new_cols))
 
 
 @dataclass(frozen=True)
@@ -1199,7 +1236,7 @@ class DimFiscalMonthConfig:
                 ), f"column_factory returned a value that was not a column. This is not allowed. Value: {new_col}"
                 new_cols[k] = self.column_factory(v)
 
-            self.columns = DimCalendarMonthColumns(**new_cols)
+            self.columns = DimFiscalMonthColumns(**new_cols)
 
 
 @dataclass(frozen=True)
