@@ -57,3 +57,7 @@ class TestDimDateConfig(unittest.TestCase):
             saved_defaults = pickle.load(file)
 
         self.assertEqual(DimDateConfig(), saved_defaults)
+
+
+if __name__ == "main":
+    unittest.main()

@@ -967,8 +967,8 @@ class DimDateColumns:
         assert (
             self.date_key.include
         ), "DimDateColumns.date_key must be included, as it is the table key."
-        _assert_no_duplicate_colnames("DimDateColumns", cols)
-        _assert_no_duplicate_col_sortkeys("DimDateColumns", cols)
+        _assert_no_duplicate_colnames(DimDateColumns.__name__, cols)
+        _assert_no_duplicate_col_sortkeys(DimDateColumns.__name__, cols)
 
 
 @dataclass(frozen=True)
@@ -1208,6 +1208,18 @@ class DimFiscalMonthColumns:
     month_end_yearly_burnup: Column = field(
         default_factory=lambda: Column("MonthEndYearlyBurnup", True, 74000)
     )
+
+    def __post_init__(self):
+        field_names = (f.name for f in fields(self))
+        cols = [self.__dict__[name] for name in field_names]
+        assert (
+            self.month_start_key.include
+        ), "DimFiscalMonthColumns.month_start_key must be included, as it is part of the table key."
+        assert (
+            self.month_end_key.include
+        ), "DimFiscalMonthColumns.month_end_key must be included, as it is part of the table key."
+        _assert_no_duplicate_colnames(DimFiscalMonthColumns.__name__, cols)
+        _assert_no_duplicate_col_sortkeys(DimFiscalMonthColumns.__name__, cols)
 
 
 @dataclass(frozen=True)
