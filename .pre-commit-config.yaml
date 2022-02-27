@@ -14,7 +14,7 @@ repos:
   - id: unittest
     name: unittest
     entry: python -m unittest discover -s tests
-    language: python
+    language: system
     'types': [python]
     pass_filenames: false
     stages: [commit]

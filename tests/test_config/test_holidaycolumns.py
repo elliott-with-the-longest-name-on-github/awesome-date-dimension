@@ -4,7 +4,7 @@ import unittest
 from awesome_date_dimension.config import Column, HolidaysColumns
 
 
-class TestHolidaysColumns(unittest.TestCase):
+class TestHolidayColumns(unittest.TestCase):
     def test_failure_when_one_or_more_columns_are_excluded(self):
         with self.assertRaises(AssertionError):
             HolidaysColumns(date_key=Column("DateKey", False, 1000))
