@@ -1,5 +1,6 @@
 from dataclasses import asdict, dataclass, field, fields
 from datetime import date, datetime, tzinfo
+from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Iterable, Union, ValuesView
 
@@ -1511,3 +1512,13 @@ class Config:
     dim_calendar_month: DimCalendarMonthConfig = field(
         default_factory=DimCalendarMonthConfig
     )
+
+
+class ConfigVersion(Enum):
+    V1 = "v1"
+
+
+def config_factory(version: ConfigVersion):
+    if version == ConfigVersion.V1:
+        return Config()
+    raise TypeError("version must be a valid instance of ConfigVersion")
