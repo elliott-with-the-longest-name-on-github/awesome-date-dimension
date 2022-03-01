@@ -1,4 +1,53 @@
-SET DATEFIRST 7;
+from ...config import Config
+from .tsql_columns import TSQLDimDateColumns
+
+
+# Note: Rather than trying to be "smart" and removing or adding columns based on whether or not they should be present,
+# we just remove or rename them at the very end before the INSERT statement. The performance change is so negligible for a one-time-setup
+# script that it doesn't make sense to take on the complication.
+def dim_date_insert_template(config: Config, columns: TSQLDimDateColumns) -> str:
+    holiday_join = []
+    business_day_list = []
+    holiday_columndef = []
+    if config.holidays.generate_holidays:
+        for i, t in enumerate(config.holidays.holiday_types):
+            holiday_join.append(
+                f"    LEFT OUTER JOIN {config.holidays.holidays_schema_name}.{config.holidays.holidays_table_name} AS h{i} -- {t.name}"
+            )
+            holiday_join.append(
+                f"      ON fh.DateKey = h{i}.{config.holidays.holidays_columns.date_key.name} AND h{i}.{config.holidays.holidays_columns.holiday_type_key.name} = (SELECT {config.holidays.holiday_types_columns.holiday_type_key.name} FROM {config.holidays.holiday_types_schema_name}.{config.holidays.holiday_types_table_name} WHERE {config.holidays.holiday_types_columns.holiday_type_name.name} = '{t.name}')"
+            )
+            if t.included_in_business_day_calc:
+                business_day_list.append(
+                    f"h{i}.{config.holidays.holidays_columns.date_key.name} IS NOT NULL"
+                )
+
+            holiday_columndef.append(
+                f"      {t.generated_column_prefix}{t.generated_flag_column_postfix} = IIF("
+            )
+            holiday_columndef.append(
+                f"        h{i}.{config.holidays.holidays_columns.date_key.name} IS NOT NULL,"
+            )
+            holiday_columndef.append(f"        1,")
+            holiday_columndef.append(f"        0")
+            holiday_columndef.append(f"      ),")
+            holiday_columndef.append("")
+            holiday_columndef.append(
+                f"      {t.generated_column_prefix}{t.generated_name_column_postfix} = h{i}.{config.holidays.holidays_columns.holiday_name.name},"
+            )
+            holiday_columndef.append("")
+
+        holiday_join = "\n".join(holiday_join)
+        business_day_clause = "\n".join(business_day_list) + "\n      OR "
+        holiday_column_clause = ",\n\n" + "\n".join(holiday_columndef)[:-2]
+    else:
+        holiday_join = ""
+        business_day_clause = ""
+        holiday_column_clause = ""
+
+    insert_column_clause = ",\n  ".join(map(lambda c: c.name, columns))
+
+    return f"""SET DATEFIRST 7;
 
 DECLARE @TodayInLocal date;
 DECLARE @FirstDate date;
@@ -13,14 +62,12 @@ DECLARE @ISODatekeyFormatNumber int;
 DECLARE @ISO8601DatestringFormatNumber int;
 DECLARE @USDatestringFormatNumber int;
 
--- customize-daterange START
-SET @FirstDate='2000-01-01';
-SET @NumberOfYearsToGenerate=100;
---customize-daterange END
+SET @FirstDate='{config.date_range.start_date.isoformat()}';
+SET @NumberOfYearsToGenerate={config.date_range.num_years};
 
--- customize-fiscalperiods START
-SET @FiscalMonthStartDay=26; -- Cannot be >28 or you'll blow up
-SET @FiscalYearStartMonth=12;
+
+SET @FiscalMonthStartDay={config.fiscal.month_start_day}; -- Cannot be >28 or you'll blow up
+SET @FiscalYearStartMonth={config.fiscal.year_start_month};
 
 -- Set @FiscalPeriodEndMatchesCalendar to 1 if
 -- your fiscal calendar takes on the month/quarter of
@@ -28,27 +75,31 @@ SET @FiscalYearStartMonth=12;
 -- For example, if your month runs the 26th through the 25th,
 -- and Dec 25-Jan 26 is considered "January", set it to 1.
 -- If Dec 25-Jan 26 is considered "December", set to 0.
-SET @FiscalMonthPeriodEndMatchesCalendar=1;
-SET @FiscalQuarterPeriodEndMatchesCalendar=1;
-SET @FiscalYearPeriodEndMatchesCalendar=1;
--- customize-fiscalperiods END
+SET @FiscalMonthPeriodEndMatchesCalendar={1 if config.fiscal.month_end_matches_calendar else 0};
+SET @FiscalQuarterPeriodEndMatchesCalendar={1 if config.fiscal.quarter_end_matches_calendar else 0};
+SET @FiscalYearPeriodEndMatchesCalendar={1 if config.fiscal.year_end_matches_calendar else 0};
 
--- No touchie these lines; adjust lines above instead
+
 -- If you need to change what timezone you want to base your relative flags on
 -- be sure to make sure your target system recognizes the timezone
--- customize-todayinlocal START
 SET @TodayInLocal = CONVERT(
   date, 
-  GETUTCDATE() AT TIME ZONE 'UTC' AT TIME ZONE 'Mountain Standard Time'
+  -- You need to figure out what your local TZ is called in your server host's registry.
+  -- See https://docs.microsoft.com/en-us/sql/t-sql/queries/at-time-zone-transact-sql?view=sql-server-ver15
+  -- for more info.
+  -- For example, on my machine, for MST, the following line would be:
+  -- GETUTCDATE() AT TIME ZONE 'UTC' AT TIME ZONE 'Mountain Standard Time'
+  GETUTCDATE() AT TIME ZONE 'UTC' AT TIME ZONE IntentionallyCrashScriptIfItTriesToRun
 );
--- customize-todayinlocal END
+
+-- No touchie these lines; adjust the above instead
 SET @LastDate=DATEADD(YEAR,@NumberOfYearsToGenerate,@FirstDate);
 SET @ISODatekeyFormatNumber=112;
 SET @ISO8601DatestringFormatNumber=23;
 SET @USDatestringFormatNumber=101;
 
 -- For all comments, assume:
--- The DateKey is 20210101
+-- The {config.dim_date.columns.date_key.name} is 20210101
 -- @TodayInLocal = 2021-07-29
 -- @FiscalMonthStartDay=26;
 -- @FiscalYearStartMonth=12;
@@ -57,7 +108,7 @@ SET @USDatestringFormatNumber=101;
 -- @FiscalYearPeriodEndMatchesCalendar=1;
 WITH Recursion AS (
   SELECT
-    DateKey = CONVERT(
+    {config.dim_date.columns.date_key.name} = CONVERT(
       int,
       CONVERT(
         varchar(8),
@@ -66,40 +117,40 @@ WITH Recursion AS (
       )
     ),
 
-    TheDate = @FirstDate
+    {config.dim_date.columns.the_date.name} = @FirstDate
   UNION ALL
   SELECT
     CONVERT(
       int,
       CONVERT(
         varchar(8),
-        DATEADD(DAY, 1, TheDate),
+        DATEADD(DAY, 1, {config.dim_date.columns.the_date.name}),
         @ISODatekeyFormatNumber
       )
     ),
-    DATEADD(DAY, 1, TheDate)
+    DATEADD(DAY, 1, {config.dim_date.columns.the_date.name})
   FROM Recursion
-  WHERE TheDate < @LastDate
+  WHERE {config.dim_date.columns.the_date.name} < @LastDate
 ),
 
 BaseDatesFirst AS (
   SELECT 
-    DateKey,
-    TheDate,
+    {config.dim_date.columns.date_key.name},
+    {config.dim_date.columns.the_date.name},
     CalendarYearStart = DATEFROMPARTS(
-      YEAR(TheDate),
+      YEAR({config.dim_date.columns.the_date.name}),
       01,
       01
     ),
     CalendarYearEnd = DATEFROMPARTS(
-      YEAR(TheDate),
+      YEAR({config.dim_date.columns.the_date.name}),
       12,
       31
     ),
     CalendarQuarterStart = CAST(
       DATEADD(
         quarter,
-        DATEDIFF(quarter, 0, TheDate),
+        DATEDIFF(quarter, 0, {config.dim_date.columns.the_date.name}),
         0
       ) AS date
     ),
@@ -109,32 +160,32 @@ BaseDatesFirst AS (
         -1, 
         DATEADD(
           quarter, 
-          DATEDIFF(quarter, 0, TheDate) + 1,
+          DATEDIFF(quarter, 0, {config.dim_date.columns.the_date.name}) + 1,
           0
         )
       ) AS date
     ),
     CalendarMonthStart = DATEFROMPARTS(
-      YEAR(TheDate),
-      MONTH(TheDate),
+      YEAR({config.dim_date.columns.the_date.name}),
+      MONTH({config.dim_date.columns.the_date.name}),
       01
     ),
-    CalendarMonthEnd = EOMONTH(TheDate),
+    CalendarMonthEnd = EOMONTH({config.dim_date.columns.the_date.name}),
     CalendarWeekStart = DATEADD(
       day, 
       1-DATEPART(
         WEEKDAY, 
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ), 
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
     CalendarWeekEnd = DATEADD(
       day, 
       7-DATEPART(
         WEEKDAY, 
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ), 
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
 
     CalendarYearStartToday = DATEFROMPARTS(
@@ -190,19 +241,19 @@ BaseDatesFirst AS (
 
     -- This looks insane, but it's not too complicated. Examples:
     -- For:
-    --     TheDate = '2021-01-01';
+    --     {config.dim_date.columns.the_date.name} = '2021-01-01';
     --     @FiscalYearStartMonth = 12;
     --     @FiscalMonthStartDay = 26;
     -- Output: 
     --     '2020-12-26'
     -- For: 
-    --     TheDate = '2020-12-26';
+    --     {config.dim_date.columns.the_date.name} = '2020-12-26';
     --     @FiscalYearStartMonth = 12;
     --     @FiscalMonthStartDay = 26;
     -- Output: 
     --     '2020-12-26'
     -- For: 
-    --     TheDate = '2020-12-25';
+    --     {config.dim_date.columns.the_date.name} = '2020-12-25';
     --     @FiscalYearStartMonth = 12;
     --     @FiscalMonthStartDay = 26;
     -- Output: 
@@ -213,19 +264,19 @@ BaseDatesFirst AS (
       DATEDIFF(
         day, 
         DATEFROMPARTS(
-          DATEPART(year, TheDate), 
+          DATEPART(year, {config.dim_date.columns.the_date.name}), 
           @FiscalYearStartMonth,
           @FiscalMonthStartDay
         ),
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ) >= 0,
       DATEFROMPARTS(
-        DATEPART(year, TheDate), 
+        DATEPART(year, {config.dim_date.columns.the_date.name}), 
         @FiscalYearStartMonth,
         @FiscalMonthStartDay
       ),
       DATEFROMPARTS(
-          DATEPART(year, TheDate) - 1, 
+          DATEPART(year, {config.dim_date.columns.the_date.name}) - 1, 
           @FiscalYearStartMonth,
           @FiscalMonthStartDay
         )
@@ -292,7 +343,7 @@ BaseDatesThird AS (
       FiscalYearEnd
     ),
 
-    FiscalPeriodYearReferenceTotday = IIF(
+    FiscalPeriodYearReferenceToday = IIF(
       @FiscalYearPeriodEndMatchesCalendar = 0,
       FiscalYearStartToday,
       FiscalYearEndToday
@@ -300,19 +351,19 @@ BaseDatesThird AS (
 
     -- Same here. Here are some examples:
     -- For:
-    --     TheDate = '2021-01-01';
+    --     {config.dim_date.columns.the_date.name} = '2021-01-01';
     --     @FiscalYearStartMonth = 12;
     --     @FiscalMonthStartDay = 26;
     -- Output: 
     --     '2020-12-26'
     -- For: 
-    --     TheDate = '2020-12-26';
+    --     {config.dim_date.columns.the_date.name} = '2020-12-26';
     --     @FiscalYearStartMonth = 12;
     --     @FiscalMonthStartDay = 26;
     -- Output: 
     --     '2020-12-26'
     -- For: 
-    --     TheDate = '2020-12-25';
+    --     {config.dim_date.columns.the_date.name} = '2020-12-25';
     --     @FiscalYearStartMonth = 12;
     --     @FiscalMonthStartDay = 26;
     -- Output: 
@@ -320,11 +371,11 @@ BaseDatesThird AS (
     FiscalMonthStart = IIF(
       DATEPART(
         day,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ) >= @FiscalMonthStartDay,
       DATEFROMPARTS(
-        YEAR(TheDate),
-        MONTH(TheDate),
+        YEAR({config.dim_date.columns.the_date.name}),
+        MONTH({config.dim_date.columns.the_date.name}),
         @FiscalMonthStartDay
       ),
       DATEFROMPARTS(
@@ -332,14 +383,14 @@ BaseDatesThird AS (
           DATEADD(
             month,
             -1,
-            TheDate
+            {config.dim_date.columns.the_date.name}
           )
         ),
         MONTH(
           DATEADD(
             month,
             -1,
-            TheDate
+            {config.dim_date.columns.the_date.name}
           )
         ),
         @FiscalMonthStartDay
@@ -424,7 +475,7 @@ BaseDatesFifth AS (
     FiscalQuarterStart = IIF(
       DATEPART(
         quarter,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ) = DATEPART(
         quarter,
         FiscalMonthEnd
@@ -433,10 +484,10 @@ BaseDatesFifth AS (
         YEAR(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
-                DATEDIFF(quarter, 0, TheDate),
+                DATEDIFF(quarter, 0, {config.dim_date.columns.the_date.name}),
                 0
             )
           )
@@ -444,10 +495,10 @@ BaseDatesFifth AS (
         MONTH(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
-                DATEDIFF(quarter, 0, TheDate),
+                DATEDIFF(quarter, 0, {config.dim_date.columns.the_date.name}),
                 0
             )
           )
@@ -458,10 +509,10 @@ BaseDatesFifth AS (
         YEAR(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
-                DATEDIFF(quarter, 0, TheDate) + 1,
+                DATEDIFF(quarter, 0, {config.dim_date.columns.the_date.name}) + 1,
                 0
             )
           )
@@ -469,10 +520,10 @@ BaseDatesFifth AS (
         MONTH(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
-                DATEDIFF(quarter, 0, TheDate) + 1,
+                DATEDIFF(quarter, 0, {config.dim_date.columns.the_date.name}) + 1,
                 0
             )
           )
@@ -493,7 +544,7 @@ BaseDatesFifth AS (
         YEAR(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
                 DATEDIFF(quarter, 0, @TodayInLocal),
@@ -504,7 +555,7 @@ BaseDatesFifth AS (
         MONTH(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
                 DATEDIFF(quarter, 0, @TodayInLocal),
@@ -518,7 +569,7 @@ BaseDatesFifth AS (
         YEAR(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
                 DATEDIFF(quarter, 0, @TodayInLocal) + 1,
@@ -529,7 +580,7 @@ BaseDatesFifth AS (
         MONTH(
           DATEADD(
             month,
-            -1,
+            IIF(@FiscalMonthStartDay = 1, 0, -1),
             DATEADD(
                 quarter,
                 DATEDIFF(quarter, 0, @TodayInLocal) + 1,
@@ -782,70 +833,109 @@ Main AS (
     fh.*,
 
     -- '2021-01-01'
-    ISODateName = CONVERT(
+    {config.dim_date.columns.iso_date_name.name} = CONVERT(
       varchar(10),
-      TheDate,
+      {config.dim_date.columns.the_date.name},
       @ISO8601DatestringFormatNumber
     ),
 
+    -- '2020-W53-5'
+    -- This is gross, but it works for
+    -- every value I tested for (which was a lot).
+    -- The "{config.dim_date.columns.year.name}" part is from https://stackoverflow.com/questions/26926271/sql-get-iso-year-for-iso-week
+    ISOWeekDateName = CONCAT(
+      DATENAME(
+        year,
+        DATEADD(
+          day,
+          26-DATEPART(
+            iso_week,
+            {config.dim_date.columns.the_date.name}
+          ),
+          {config.dim_date.columns.the_date.name}
+        )
+      ),
+      '-W',
+      RIGHT(
+        '0'+CONVERT(
+          varchar(2),
+          DATEPART(
+            iso_week,
+            {config.dim_date.columns.the_date.name}
+          )
+        ),
+        2
+      ),
+      '-',
+      CONVERT(
+        varchar(1),
+        (
+          DATEPART(
+            weekday,
+            {config.dim_date.columns.the_date.name}
+          ) + @@DATEFIRST + 6 - 1
+        ) % 7 + 1
+      )
+    ),
+
     -- '01/01/2021'
-    AmericanDateName = CONVERT(
+    {config.dim_date.columns.american_date_name.name} = CONVERT(
       varchar(10),
-      TheDate,
+      {config.dim_date.columns.the_date.name},
       @USDatestringFormatNumber
     ),
 
     -- 'Friday'
-    DayOfWeekName = DATENAME(
+    {config.dim_date.columns.day_of_week_name.name} = DATENAME(
       weekday,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
 
     -- 'Fri'
-    DayOfWeekAbbrev = LEFT(
+    {config.dim_date.columns.day_of_week_abbrev.name} = LEFT(
       DATENAME(
         weekday,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
       3
     ),
 
     -- 'January'
-    MonthName = DATENAME(
+    {config.dim_date.columns.month_name.name} = DATENAME(
       month,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
 
     -- 'Jan'
-    MonthAbbrev = LEFT(
+    {config.dim_date.columns.month_abbrev.name} = LEFT(
       DATENAME(
         month,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
       3
     ),
 
     -- '2021W01'
-    YearWeekName = CONCAT(
+    {config.dim_date.columns.year_week_name.name} = CONCAT(
       DATENAME(
         year,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
       'W',
       RIGHT(
         '0'+DATENAME(
           week,
-          TheDate
+          {config.dim_date.columns.the_date.name}
         ),
         2
       )
     ),
 
     -- '2021-01'
-    YearMonthName = CONCAT(
+    {config.dim_date.columns.year_month_name.name} = CONCAT(
       DATENAME(
         year,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
       '-',
       RIGHT(
@@ -853,7 +943,7 @@ Main AS (
           varchar(2),
           DATEPART(
             month,
-            TheDate
+            {config.dim_date.columns.the_date.name}
           )
         ),
         2
@@ -861,49 +951,49 @@ Main AS (
     ),
 
     -- 'Jan 2021'
-    MonthYearName = CONCAT(
+    {config.dim_date.columns.month_year_name.name} = CONCAT(
       LEFT(
         DATENAME(
           month,
-          TheDate
+          {config.dim_date.columns.the_date.name}
         ),
         3
       ),
       ' ',
       DATENAME(
         year,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       )
     ),
 
     -- '2021Q1'
-    YearQuarterName = CONCAT(
+    {config.dim_date.columns.year_quarter_name.name} = CONCAT(
       DATENAME(
         year,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
       'Q',
       DATENAME(
           quarter,
-          TheDate
+          {config.dim_date.columns.the_date.name}
       )
     ),
 
     -- 2021
-    Year = DATEPART(year, TheDate),
+    {config.dim_date.columns.year.name} = DATEPART(year, {config.dim_date.columns.the_date.name}),
 
     -- 202101
-    YearWeek = CONVERT(
+    {config.dim_date.columns.year_week.name} = CONVERT(
       int,
       CONCAT(
         DATENAME(
           year,
-          TheDate
+          {config.dim_date.columns.the_date.name}
         ),
         RIGHT(
           '0'+DATENAME(
             week,
-            TheDate
+            {config.dim_date.columns.the_date.name}
           ),
           2
         )
@@ -911,19 +1001,26 @@ Main AS (
     ),
 
     -- 202101
-    ISOYearWeekCode = CONVERT(
+    {config.dim_date.columns.iso_year_week_code.name} = CONVERT(
       int,
       CONCAT(
         DATENAME(
           year,
-          TheDate
+          DATEADD(
+            day,
+            26-DATEPART(
+              iso_week,
+              {config.dim_date.columns.the_date.name}
+            ),
+            {config.dim_date.columns.the_date.name}
+          )
         ),
         RIGHT(
           '0'+CONVERT(
             varchar(2),
             DATEPART(
               iso_week,
-              TheDate
+              {config.dim_date.columns.the_date.name}
             )
           ),
           2
@@ -932,19 +1029,19 @@ Main AS (
     ),
 
     -- 202101
-    YearMonth = CONVERT(
+    {config.dim_date.columns.year_month.name} = CONVERT(
       int,
       CONCAT(
         DATENAME(
           year,
-          TheDate
+          {config.dim_date.columns.the_date.name}
         ),
         RIGHT(
           '0'+CONVERT(
             varchar(2),
             DATEPART(
               month,
-              TheDate
+              {config.dim_date.columns.the_date.name}
             )
           ),
           2
@@ -953,17 +1050,17 @@ Main AS (
     ),
 
     -- 202101
-    YearQuarter = CONVERT(
+    {config.dim_date.columns.year_quarter.name} = CONVERT(
       int,
       CONCAT(
         DATENAME(
           year,
-          TheDate
+          {config.dim_date.columns.the_date.name}
         ),
         RIGHT(
           '0'+DATENAME(
             quarter,
-            TheDate
+            {config.dim_date.columns.the_date.name}
           ),
           2
         )
@@ -971,307 +1068,284 @@ Main AS (
     ),
 
     -- 5
-    DayOfWeekStartingMonday = (
+    {config.dim_date.columns.day_of_week_starting_monday.name} = (
       DATEPART(
         weekday,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ) + @@DATEFIRST + 6 - 1
     ) % 7 + 1,
 
     -- 6
-    DayOfWeek = DATEPART(
+    {config.dim_date.columns.day_of_week.name} = DATEPART(
       weekday,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
 
     -- 1
-    DayOfMonth = DATEPART(
+    {config.dim_date.columns.day_of_month.name} = DATEPART(
       day,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
 
     -- 1
-    DayOfQuarter = DATEDIFF(
+    {config.dim_date.columns.day_of_quarter.name} = DATEDIFF(
       day,
       DATEADD(
         quarter,
-        DATEDIFF(quarter, 0, TheDate),
+        DATEDIFF(quarter, 0, {config.dim_date.columns.the_date.name}),
         0
       ),
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ) + 1,
 
     -- 1
-    DayOfYear = DATEPART(
+    {config.dim_date.columns.day_of_year.name} = DATEPART(
       dayofyear,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
 
     -- 1
-    WeekOfQuarter = DATEDIFF(
+    {config.dim_date.columns.week_of_quarter.name} = DATEDIFF(
       week,
       CalendarQuarterStart,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ) + 1,
 
     -- 1
-    WeekOfYear = DATEPART(
+    {config.dim_date.columns.week_of_year.name} = DATEPART(
       week,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
 
     -- 1
-    ISOWeekOfYear = DATEPART(
+    {config.dim_date.columns.iso_week_of_year.name} = DATEPART(
       iso_week,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
 
     -- 1
-    Month = DATEPART(
+    {config.dim_date.columns.month.name} = DATEPART(
       month,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
 
     -- 1
-    MonthOfQuarter = DATEDIFF(
+    {config.dim_date.columns.month_of_quarter.name} = DATEDIFF(
       month,
       CalendarQuarterStart,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ) + 1,
 
     -- 1
-    Quarter = DATEPART(
+    {config.dim_date.columns.quarter.name} = DATEPART(
         quarter,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
     
     -- 31
-    DaysInMonth = DATEPART(
+    {config.dim_date.columns.days_in_month.name} = DATEPART(
       day,
-      EOMONTH(TheDate)
+      EOMONTH({config.dim_date.columns.the_date.name})
     ),
 
     -- 90
-    DaysInQuarter = DATEDIFF(
+    {config.dim_date.columns.days_in_quarter.name} = DATEDIFF(
       day,
       CalendarQuarterStart,
       NextCalendarQuarterStart
     ),
 
     -- 365
-    DaysInYear = DATEDIFF(
+    {config.dim_date.columns.days_in_year.name} = DATEDIFF(
       day,
       CalendarYearStart,
       NextCalendarYearStart
     ),
 
     -- -209
-    DayOffsetFromToday = DATEDIFF(
+    {config.dim_date.columns.day_offset_from_today.name} = DATEDIFF(
       day,
       @TodayInLocal,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
 
     -- -6
-    MonthOffsetFromToday = DATEDIFF(
+    {config.dim_date.columns.month_offset_from_today.name} = DATEDIFF(
       month,
       @TodayInLocal,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
 
     -- -2
-    QuarterOffsetFromToday = DATEDIFF(
+    {config.dim_date.columns.quarter_offset_from_today.name} = DATEDIFF(
       quarter,
       @TodayInLocal,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
 
     -- 0
-    YearOffsetFromToday = DATEDIFF(
+    {config.dim_date.columns.year_offset_from_today.name} = DATEDIFF(
       year,
       @TodayInLocal,
-      TheDate
+      {config.dim_date.columns.the_date.name}
     ),
 
     -- 0
-    TodayFlag = IIF(
-      TheDate = @TodayInLocal,
+    {config.dim_date.columns.today_flag.name} = IIF(
+      {config.dim_date.columns.the_date.name} = @TodayInLocal,
       1,
       0
     ),
 
     -- 0
-    CurrentWeekStartingMondayFlag = IIF(
+    {config.dim_date.columns.current_week_starting_monday_flag.name} = IIF(
       DATEDIFF(
         week,
         CONVERT(date, GETDATE()),
-        DATEADD(day, -1, TheDate)
+        DATEADD(day, -1, {config.dim_date.columns.the_date.name})
       ) = 0,
       1,
       0
     ),
 
     -- 0
-    CurrentWeekFlag = IIF(
-      DATEDIFF(week, @TodayInLocal, TheDate) = 0,
+    {config.dim_date.columns.current_week_flag.name} = IIF(
+      DATEDIFF(week, @TodayInLocal, {config.dim_date.columns.the_date.name}) = 0,
       1,
       0
     ),
 
     -- 0
-    PriorWeekFlag = IIF(
-      DATEDIFF(week, @TodayInLocal, TheDate) = -1,
+    {config.dim_date.columns.prior_week_flag.name} = IIF(
+      DATEDIFF(week, @TodayInLocal, {config.dim_date.columns.the_date.name}) = -1,
       1,
       0
     ),
 
     -- 0
-    NextWeekFlag = IIF(
-      DATEDIFF(week, @TodayInLocal, TheDate) = 1,
+    {config.dim_date.columns.next_week_flag.name} = IIF(
+      DATEDIFF(week, @TodayInLocal, {config.dim_date.columns.the_date.name}) = 1,
       1,
       0
     ),
 
     -- 0
-    CurrentMonthFlag = IIF(
-      DATEDIFF(month, @TodayInLocal, TheDate) = 0,
+    {config.dim_date.columns.current_month_flag.name} = IIF(
+      DATEDIFF(month, @TodayInLocal, {config.dim_date.columns.the_date.name}) = 0,
       1,
       0
     ),
 
     -- 0
-    PriorMonthFlag = IIF(
-      DATEDIFF(month, @TodayInLocal, TheDate) = -1,
+    {config.dim_date.columns.prior_month_flag.name} = IIF(
+      DATEDIFF(month, @TodayInLocal, {config.dim_date.columns.the_date.name}) = -1,
       1,
       0
     ),
 
     -- 0
-    NextMonthFlag = IIF(
-      DATEDIFF(month, @TodayInLocal, TheDate) = 1,
+    {config.dim_date.columns.next_month_flag.name} = IIF(
+      DATEDIFF(month, @TodayInLocal, {config.dim_date.columns.the_date.name}) = 1,
       1,
       0
     ),
 
     -- 0
-    CurrentQuarterFlag = IIF(
-      DATEDIFF(quarter, @TodayInLocal, TheDate) = 0,
+    {config.dim_date.columns.current_quarter_flag.name} = IIF(
+      DATEDIFF(quarter, @TodayInLocal, {config.dim_date.columns.the_date.name}) = 0,
       1,
       0
     ),
 
     -- 0
-    PriorQuarterFlag = IIF(
-      DATEDIFF(quarter, @TodayInLocal, TheDate) = -1,
+    {config.dim_date.columns.prior_quarter_flag.name} = IIF(
+      DATEDIFF(quarter, @TodayInLocal, {config.dim_date.columns.the_date.name}) = -1,
       1,
       0
     ),
 
     -- 0
-    NextQuarterFlag = IIF(
-      DATEDIFF(quarter, @TodayInLocal, TheDate) = 1,
+    {config.dim_date.columns.next_quarter_flag.name} = IIF(
+      DATEDIFF(quarter, @TodayInLocal, {config.dim_date.columns.the_date.name}) = 1,
       1,
       0
     ),
 
     -- 1
-    CurrentYearFlag = IIF(
-      DATEDIFF(year, @TodayInLocal, TheDate) = 0,
+    {config.dim_date.columns.current_year_flag.name} = IIF(
+      DATEDIFF(year, @TodayInLocal, {config.dim_date.columns.the_date.name}) = 0,
       1,
       0
     ),
 
     -- 0
-    PriorYearFlag = IIF(
-      DATEDIFF(year, @TodayInLocal, TheDate) = -1,
+    {config.dim_date.columns.prior_year_flag.name} = IIF(
+      DATEDIFF(year, @TodayInLocal, {config.dim_date.columns.the_date.name}) = -1,
       1,
       0
     ),
 
     -- 0
-    NextYearFlag = IIF(
-      DATEDIFF(year, @TodayInLocal, TheDate) = 1,
+    {config.dim_date.columns.next_year_flag.name} = IIF(
+      DATEDIFF(year, @TodayInLocal, {config.dim_date.columns.the_date.name}) = 1,
       1,
       0
     ),
 
     -- 1
-    WeekdayFlag = IIF(
-      DATEPART(weekday, TheDate) NOT IN (1,7),
+    {config.dim_date.columns.weekday_flag.name} = IIF(
+      DATEPART(weekday, {config.dim_date.columns.the_date.name}) NOT IN (1,7),
       1,
       0
     ),
 
-    -- 0
-    -- If 2021-01-01 is not Saturday or Sunday AND is not a holiday, 1, else 0
-    -- Note: This counts COMPANY-RECOGNIZED holidays, not US public holidays.
-    -- So the day before Christmas is recognized, while Juneteenth is not.
-    -- See CompanyHolidayFlag and USPublicHolidayFlag for more granular controls.
-    
-    -- customize-businessdays START
-    BusinessDayFlag = IIF(
-      ch.DateKey IS NOT NULL
-      OR DATEPART(
+    {config.dim_date.columns.business_day_flag.name} = IIF(
+      {business_day_clause if len(business_day_list) > 0 else ''}DATEPART(
         weekday,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ) IN (1, 7),
       0,
       1
     ),
-    -- customize-businessdays END
 
     -- 1
-    CompanyHolidayFlag = IIF(
-      ch.DateKey IS NOT NULL,
-      1,
-      0
-    ),
-
-    -- 1
-    USPublicHolidayFlag = IIF(
-      ph.DateKey IS NOT NULL,
-      1,
-      0
-    ),
-
-    -- 1
-    FirstDayOfMonthFlag = IIF(
-      CalendarMonthStart = TheDate,
+    {config.dim_date.columns.first_day_of_month_flag.name} = IIF(
+      CalendarMonthStart = {config.dim_date.columns.the_date.name},
       1,
       0
     ),
 
     -- 0
-    LastDayOfMonthFlag = IIF(
-      CalendarMonthEnd = TheDate,
+    {config.dim_date.columns.last_day_of_month_flag.name} = IIF(
+      CalendarMonthEnd = {config.dim_date.columns.the_date.name},
       1,
       0
     ),
 
     -- 1
-    FirstDayOfQuarterFlag = IIF(
-      CalendarQuarterStart = TheDate,
+    {config.dim_date.columns.first_day_of_quarter_flag.name} = IIF(
+      CalendarQuarterStart = {config.dim_date.columns.the_date.name},
       1,
       0
     ),
     
     -- 0
-    LastDayOfQuarterFlag = IIF(
-      CalendarQuarterEnd = TheDate,
+    {config.dim_date.columns.last_day_of_quarter_flag.name} = IIF(
+      CalendarQuarterEnd = {config.dim_date.columns.the_date.name},
       1,
       0
     ),
 
     -- 1
-    FirstDayOfYearFlag = IIF(
-      CalendarYearStart = TheDate,
+    {config.dim_date.columns.first_day_of_year_flag.name} = IIF(
+      CalendarYearStart = {config.dim_date.columns.the_date.name},
       1,
       0
     ),
 
     -- 0
-    LastDayOfYearFlag = IIF(
-      CalendarYearEnd = TheDate,
+    {config.dim_date.columns.last_day_of_year_flag.name} = IIF(
+      CalendarYearEnd = {config.dim_date.columns.the_date.name},
       1,
       0
     ),
@@ -1279,10 +1353,10 @@ Main AS (
     -- 0.8571
     -- The fraction of the week, counted from Sunday to Saturday, that has passed as of
     -- 2021-01-01. In this case, 6 (Friday) / 7 (the total number of days in the week)
-    FractionOfWeek = CAST(
+    {config.dim_date.columns.fraction_of_week.name} = CAST(
       DATEPART(
         weekday,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       )
       AS decimal(8,4)
     ) / 7,
@@ -1290,10 +1364,10 @@ Main AS (
     -- 0.0323
     -- The fraction of the month, counted from the first day of the calendar month to the last
     -- that has passed as of 2021-01-01. 
-    FractionOfMonth = CAST(
+    {config.dim_date.columns.fraction_of_month.name} = CAST(
       DATEPART(
         day,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ) 
       AS decimal(8,4)
     ) / DATEPART(
@@ -1304,11 +1378,11 @@ Main AS (
     -- 0.0111
     -- The fraction of the quarter, counted from the first day of the calendar quarter to the last
     -- that has passed as of 2021-01-01. 
-    FractionOfQuarter = CAST(
+    {config.dim_date.columns.fraction_of_quarter.name} = CAST(
       DATEDIFF(
         day,
         CalendarQuarterStart,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ) + 1
       AS decimal(8,4)
     ) / (DATEDIFF(
@@ -1320,10 +1394,10 @@ Main AS (
     -- 0.0027
     -- The fraction of the year, counted from the first day of the calendar year to the last
     -- that has passed as of 2021-01-01. 
-    FractionOfYear = CAST(
+    {config.dim_date.columns.fraction_of_year.name} = CAST(
       DATEPART(
         dayofyear,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       )
       AS decimal(8,4)
     ) / (DATEDIFF(
@@ -1333,167 +1407,167 @@ Main AS (
     ) + 1),
 
     -- 2020-12-31
-      PriorDay = DATEADD(
+      {config.dim_date.columns.prior_day.name} = DATEADD(
         day,
         -1,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
 
       -- 2021-01-02
-      NextDay = DATEADD(
+      {config.dim_date.columns.next_day.name} = DATEADD(
         day,
         1,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
 
       -- 2020-12-25
-      SameDayPriorWeek = DATEADD(
+      {config.dim_date.columns.same_day_prior_week.name} = DATEADD(
         week,
         -1,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
 
       -- 2020-12-01
-      SameDayPriorMonth = DATEADD(
+      {config.dim_date.columns.same_day_prior_month.name} = DATEADD(
         month,
         -1,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
 
       -- 2020-10-01
-      SameDayPriorQuarter = DATEADD(
+      {config.dim_date.columns.same_day_prior_quarter.name} = DATEADD(
         quarter,
         -1,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
 
       -- 2020-01-01
-      SameDayPriorYear = DATEADD(
+      {config.dim_date.columns.same_day_prior_year.name} = DATEADD(
         year,
         -1,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
 
       -- 2021-01-08
-      SameDayNextWeek = DATEADD(
+      {config.dim_date.columns.same_day_next_week.name} = DATEADD(
         week,
         1,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
 
       -- 2021-02-01
-      SameDayNextMonth = DATEADD(
+      {config.dim_date.columns.same_day_next_month.name} = DATEADD(
         month,
         1,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
 
       -- 2021-04-01
-      SameDayNextQuarter = DATEADD(
+      {config.dim_date.columns.same_day_next_quarter.name} = DATEADD(
         quarter,
         1,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
 
       -- 2022-01-01
-      SameDayNextYear = DATEADD(
+      {config.dim_date.columns.same_day_next_year.name} = DATEADD(
         year,
         1,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ),
 
       -- 2020-12-27 (week start is Sunday)
-      CurrentWeekStart = CalendarWeekStart,
+      {config.dim_date.columns.current_week_start.name} = CalendarWeekStart,
 
       -- 2021-01-02 (week end is Saturday)
-      CurrentWeekEnd = CalendarWeekEnd,
+      {config.dim_date.columns.current_week_end.name} = CalendarWeekEnd,
 
       -- 2021-01-01
-      CurrentMonthStart = CalendarMonthStart,
+      {config.dim_date.columns.current_month_start.name} = CalendarMonthStart,
 
       -- 2021-01-31 (does take into account leap years)
-      CurrentMonthEnd = CalendarMonthEnd,
+      {config.dim_date.columns.current_month_end.name} = CalendarMonthEnd,
 
       -- 2021-01-01
-      CurrentQuarterStart = CalendarQuarterStart,
+      {config.dim_date.columns.current_quarter_start.name} = CalendarQuarterStart,
 
       -- 2021-03-31
-      CurrentQuarterEnd = CalendarQuarterEnd,
+      {config.dim_date.columns.current_quarter_end.name} = CalendarQuarterEnd,
       
       -- 2021-01-01
-      CurrentYearStart = CalendarYearStart,
+      {config.dim_date.columns.current_year_start.name} = CalendarYearStart,
 
       -- 2021-12-31
-      CurrentYearEnd = CalendarYearEnd,
+      {config.dim_date.columns.current_year_end.name} = CalendarYearEnd,
 
       -- 2020-12-20
-      PriorWeekStart = PriorCalendarWeekStart,
+      {config.dim_date.columns.prior_week_start.name} = PriorCalendarWeekStart,
 
       -- 2020-12-26
-      PriorWeekEnd = PriorCalendarWeekEnd,
+      {config.dim_date.columns.prior_week_end.name} = PriorCalendarWeekEnd,
 
       -- 2020-12-01
-      PriorMonthStart = PriorCalendarMonthStart,
+      {config.dim_date.columns.prior_month_start.name} = PriorCalendarMonthStart,
 
       -- 2020-12-31
-      PriorMonthEnd = PriorCalendarMonthEnd,
+      {config.dim_date.columns.prior_month_end.name} = PriorCalendarMonthEnd,
 
       -- 2020-10-01
-      PriorQuarterStart = PriorCalendarQuarterStart,
+      {config.dim_date.columns.prior_quarter_start.name} = PriorCalendarQuarterStart,
 
       -- 2020-12-31
-      PriorQuarterEnd = PriorCalendarQuarterEnd,
+      {config.dim_date.columns.prior_quarter_end.name} = PriorCalendarQuarterEnd,
 
       -- 2020-01-01
-      PriorYearStart = PriorCalendarYearStart,
+      {config.dim_date.columns.prior_year_start.name} = PriorCalendarYearStart,
 
       -- 2020-12-31
-      PriorYearEnd = PriorCalendarYearEnd,
+      {config.dim_date.columns.prior_year_end.name} = PriorCalendarYearEnd,
 
       -- 2021-01-03
-      NextWeekStart = NextCalendarWeekStart,
+      {config.dim_date.columns.next_week_start.name} = NextCalendarWeekStart,
 
       -- 2021-01-09
-      NextWeekEnd = NextCalendarWeekEnd,
+      {config.dim_date.columns.next_week_end.name} = NextCalendarWeekEnd,
 
       -- 2021-02-01
-      NextMonthStart = NextCalendarMonthStart,
+      {config.dim_date.columns.next_month_start.name} = NextCalendarMonthStart,
 
       -- 2021-02-28 (handles leap years)
-      NextMonthEnd = NextCalendarMonthEnd,
+      {config.dim_date.columns.next_month_end.name} = NextCalendarMonthEnd,
 
       -- 2021-04-01
-      NextQuarterStart = NextCalendarQuarterStart,
+      {config.dim_date.columns.next_quarter_start.name} = NextCalendarQuarterStart,
 
       -- 2021-06-30
-      NextQuarterEnd = NextCalendarQuarterEnd,
+      {config.dim_date.columns.next_quarter_end.name} = NextCalendarQuarterEnd,
 
       -- 2022-01-01
-      NextYearStart = NextCalendarYearStart,
+      {config.dim_date.columns.next_year_start.name} = NextCalendarYearStart,
 
       -- 2022-12-31
-      NextYearEnd = NextCalendarYearEnd,
+      {config.dim_date.columns.next_year_end.name} = NextCalendarYearEnd,
 
       -- Hell starts here.
       -- Let me use a couple of examples. With our current settings, on Jan. 1:
-      -- Year = 2021 (because the end of the fiscal year falls into CY2021)
-      -- Month = January (name), 01 (number) 
+      -- {config.dim_date.columns.year.name} = 2021 (because the end of the fiscal year falls into CY2021)
+      -- {config.dim_date.columns.month.name} = January (name), 01 (number) 
       -- (because the end of the fiscal month, 01-26, falls into January)
       -- Here's the catch:
-      -- Quarter and month numbers are always based off of the start of your fiscal year
+      -- {config.dim_date.columns.quarter.name} and month numbers are always based off of the start of your fiscal year
       -- So if your fiscal year starts July 15, July 15-August 14 will always have a month 
       -- number of 1 (because it's the first month in your fiscal year), but the fiscal
       -- month NAME will depend on @@FiscalMonthPeriodEndMatchesCalendar. If it's set to 0,
       -- the name would be July. If it's set to 1, it would be August.
 
       -- 'January'
-      FiscalMonthName = DATENAME(
+      {config.dim_date.columns.fiscal_month_name.name} = DATENAME(
         month,
         FiscalPeriodMonthReference
       ),
 
       -- 'Jan'
-      FiscalMonthAbbrev = LEFT(
+      {config.dim_date.columns.fiscal_month_abbrev.name} = LEFT(
         DATENAME(
           month,
           FiscalPeriodMonthReference
@@ -1502,7 +1576,7 @@ Main AS (
       ),
 
       -- '2021W02'
-      FiscalYearWeekName = CONCAT(
+      {config.dim_date.columns.fiscal_year_week_name.name} = CONCAT(
         DATENAME(
           year,
           FiscalPeriodYearReference
@@ -1515,7 +1589,7 @@ Main AS (
               DATEDIFF(
               week,
               FiscalYearStart,
-              TheDate
+              {config.dim_date.columns.the_date.name}
             ) + 1
           ),
           2
@@ -1523,7 +1597,7 @@ Main AS (
       ),
 
       -- '2021-01'
-      FiscalYearMonthName = CONCAT(
+      {config.dim_date.columns.fiscal_year_month_name.name} = CONCAT(
         DATENAME(
           year,
           FiscalPeriodYearReference
@@ -1539,7 +1613,7 @@ Main AS (
       ),
 
       -- 'Jan 2021'
-      FiscalMonthYearName = CONCAT(
+      {config.dim_date.columns.fiscal_month_year_name.name} = CONCAT(
         LEFT(
           DATENAME(
             month,
@@ -1555,7 +1629,7 @@ Main AS (
       ),
 
       -- '2021Q1'
-      FiscalYearQuarterName = CONCAT(
+      {config.dim_date.columns.fiscal_year_quarter_name.name} = CONCAT(
         DATENAME(
           year,
           FiscalPeriodYearReference
@@ -1568,10 +1642,10 @@ Main AS (
       ),
 
       -- 2021
-      FiscalYear = FiscalYearNum,
+      {config.dim_date.columns.fiscal_year.name} = FiscalYearNum,
 
       -- 202102
-      FiscalYearWeek = CONVERT(
+      {config.dim_date.columns.fiscal_year_week.name} = CONVERT(
         int,
         CONCAT(
           DATENAME(
@@ -1585,7 +1659,7 @@ Main AS (
               DATEDIFF(
                 week,
                 FiscalYearStart,
-                TheDate
+                {config.dim_date.columns.the_date.name}
               ) + 1
             ),
             2
@@ -1594,7 +1668,7 @@ Main AS (
       ),
 
       -- 202101
-      FiscalYearMonth = CONVERT(
+      {config.dim_date.columns.fiscal_year_month.name} = CONVERT(
         int,
         CONCAT(
           DATENAME(
@@ -1612,7 +1686,7 @@ Main AS (
       ),
 
       -- 202101
-      FiscalYearQuarter = CONVERT(
+      {config.dim_date.columns.fiscal_year_quarter.name} = CONVERT(
         int,
         CONCAT(
           DATENAME(
@@ -1630,198 +1704,198 @@ Main AS (
       ),
 
       -- 7
-      FiscalDayOfMonth = DATEDIFF(
+      {config.dim_date.columns.fiscal_day_of_month.name} = DATEDIFF(
         day,
         FiscalMonthStart,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ) + 1,
 
       -- 7
-      FiscalDayOfQuarter = DATEDIFF(
+      {config.dim_date.columns.fiscal_day_of_quarter.name} = DATEDIFF(
         day,
         FiscalQuarterStart,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ) + 1,
 
       -- 7
-      FiscalDayOfYear = DATEDIFF(
+      {config.dim_date.columns.fiscal_day_of_year.name} = DATEDIFF(
         day,
         FiscalYearStart,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ) + 1,
 
       -- 2
-      FiscalWeekOfQuarter = DATEDIFF(
+      {config.dim_date.columns.fiscal_week_of_quarter.name} = DATEDIFF(
         week,
         FiscalQuarterStart,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ) + 1,
 
       -- 2
-      FiscalWeekOfYear = DATEDIFF(
+      {config.dim_date.columns.fiscal_week_of_year.name} = DATEDIFF(
         week,
         FiscalYearStart,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ) + 1,
 
       -- 1
-      FiscalMonth = FiscalMonthNum,
+      {config.dim_date.columns.fiscal_month.name} = FiscalMonthNum,
 
       -- 1
-      FiscalMonthOfQuarter = DATEDIFF(
+      {config.dim_date.columns.fiscal_month_of_quarter.name} = DATEDIFF(
         month,
         FiscalQuarterStart,
-        TheDate
+        {config.dim_date.columns.the_date.name}
       ) + IIF(
         DATEPART(
           day,
-          TheDate
+          {config.dim_date.columns.the_date.name}
         ) >= @FiscalMonthStartDay,
         1,
         0
       ),
 
       -- 1
-      FiscalQuarter = FiscalQuarterNum,
+      {config.dim_date.columns.fiscal_quarter.name} = FiscalQuarterNum,
 
       -- 31
-      FiscalDaysInMonth = DATEDIFF(
+      {config.dim_date.columns.fiscal_days_in_month.name} = DATEDIFF(
         day,
         FiscalMonthStart,
         FiscalMonthEnd
       ) + 1,
 
       -- 90
-      FiscalDaysInQuarter = DATEDIFF(
+      {config.dim_date.columns.fiscal_days_in_quarter.name} = DATEDIFF(
         day,
         FiscalQuarterStart,
         FiscalQuarterEnd
       ) + 1,
 
       -- 365
-      FiscalDaysInYear = DATEDIFF(
+      {config.dim_date.columns.fiscal_days_in_year.name} = DATEDIFF(
         day,
         FiscalYearStart,
         FiscalYearEnd
       ) + 1,
 
       -- 0
-      FiscalCurrentMonthFlag = IIF(
+      {config.dim_date.columns.fiscal_current_month_flag.name} = IIF(
         @TodayInLocal BETWEEN FiscalMonthStart AND FiscalMonthEnd,
         1,
         0
       ),
 
       -- 0
-      FiscalPriorMonthFlag = IIF(
-        @TodayInLocal BETWEEN 
-          PriorFiscalMonthStart AND PriorFiscalMonthEnd,
-        1,
-        0
-      ),
-
-      -- 0
-      FiscalNextMonthFlag = IIF(
+      {config.dim_date.columns.fiscal_prior_month_flag.name} = IIF(
         @TodayInLocal BETWEEN 
           NextFiscalMonthStart AND NextFiscalMonthEnd,
         1,
         0
       ),
+
+      -- 0
+      {config.dim_date.columns.fiscal_next_month_flag.name} = IIF(
+        @TodayInLocal BETWEEN 
+          PriorFiscalMonthStart AND PriorFiscalMonthEnd,
+        1,
+        0
+      ),
       
       -- 0
-      FiscalCurrentQuarterFlag = IIF(
+      {config.dim_date.columns.fiscal_current_quarter_flag.name} = IIF(
         @TodayInLocal BETWEEN FiscalQuarterStart AND FiscalQuarterEnd,
         1,
         0
       ),
       
       -- 0
-      FiscalPriorQuarterFlag = IIF(
-        @TodayInLocal BETWEEN 
-          PriorFiscalQuarterStart AND PriorFiscalQuarterEnd,
-        1,
-        0
-      ),
-      
-      -- 0
-      FiscalNextQuarterFlag = IIF(
+      {config.dim_date.columns.fiscal_prior_quarter_flag.name} = IIF(
         @TodayInLocal BETWEEN 
           NextFiscalQuarterStart AND NextFiscalQuarterEnd,
         1,
         0
       ),
       
+      -- 0
+      {config.dim_date.columns.fiscal_next_quarter_flag.name} = IIF(
+        @TodayInLocal BETWEEN 
+          PriorFiscalQuarterStart AND PriorFiscalQuarterEnd,
+        1,
+        0
+      ),
+      
       -- 1
-      FiscalCurrentYearFlag = IIF(
+      {config.dim_date.columns.fiscal_current_year_flag.name} = IIF(
         @TodayInLocal BETWEEN FiscalYearStart AND FiscalYearEnd,
         1,
         0
       ),
       
       -- 0
-      FiscalPriorYearFlag = IIF(
-        @TodayInLocal BETWEEN 
-          PriorFiscalYearStart AND PriorFiscalYearEnd,
-        1,
-        0
-      ),
-
-      -- 0
-      FiscalNextYearFlag = IIF(
+      {config.dim_date.columns.fiscal_prior_year_flag.name} = IIF(
         @TodayInLocal BETWEEN 
           NextFiscalYearStart AND NextFiscalYearEnd,
         1,
         0
       ),
-      
+
       -- 0
-      FiscalFirstDayOfMonthFlag = IIF(
-        TheDate = FiscalMonthStart,
+      {config.dim_date.columns.fiscal_next_year_flag.name} = IIF(
+        @TodayInLocal BETWEEN 
+          PriorFiscalYearStart AND PriorFiscalYearEnd,
         1,
         0
       ),
       
       -- 0
-      FiscalLastDayOfMonthFlag = IIF(
-        TheDate = FiscalMonthEnd,
+      {config.dim_date.columns.fiscal_first_day_of_month_flag.name} = IIF(
+        {config.dim_date.columns.the_date.name} = FiscalMonthStart,
         1,
         0
       ),
       
       -- 0
-      FiscalFirstDayOfQuarterFlag = IIF(
-        TheDate = FiscalQuarterStart,
+      {config.dim_date.columns.fiscal_last_day_of_month_flag.name} = IIF(
+        {config.dim_date.columns.the_date.name} = FiscalMonthEnd,
         1,
         0
       ),
       
       -- 0
-      FiscalLastDayOfQuarterFlag = IIF(
-        TheDate = FiscalQuarterEnd,
+      {config.dim_date.columns.fiscal_first_day_of_quarter_flag.name} = IIF(
+        {config.dim_date.columns.the_date.name} = FiscalQuarterStart,
         1,
         0
       ),
       
       -- 0
-      FiscalFirstDayOfYearFlag = IIF(
-        TheDate = FiscalYearStart,
+      {config.dim_date.columns.fiscal_last_day_of_quarter_flag.name} = IIF(
+        {config.dim_date.columns.the_date.name} = FiscalQuarterEnd,
         1,
         0
       ),
       
       -- 0
-      FiscalLastDayOfYearFlag = IIF(
-        TheDate = FiscalYearEnd,
+      {config.dim_date.columns.fiscal_first_day_of_year_flag.name} = IIF(
+        {config.dim_date.columns.the_date.name} = FiscalYearStart,
+        1,
+        0
+      ),
+      
+      -- 0
+      {config.dim_date.columns.fiscal_last_day_of_year_flag.name} = IIF(
+        {config.dim_date.columns.the_date.name} = FiscalYearEnd,
         1,
         0
       ),
       
       -- 0.2258
-      FiscalFractionOfMonth = CAST(
+      {config.dim_date.columns.fiscal_fraction_of_month.name} = CAST(
         DATEDIFF(
           day,
           FiscalMonthStart,
-          TheDate
+          {config.dim_date.columns.the_date.name}
         ) + 1 AS decimal(8,4)
       ) / (DATEDIFF(
         day,
@@ -1830,11 +1904,11 @@ Main AS (
       ) + 1),
 
       -- 0.0778
-      FiscalFractionOfQuarter = CAST(
+      {config.dim_date.columns.fiscal_fraction_of_quarter.name} = CAST(
         DATEDIFF(
           day,
           FiscalQuarterStart,
-          TheDate
+          {config.dim_date.columns.the_date.name}
         ) + 1 AS decimal(8,4)
       ) / (DATEDIFF(
         day,
@@ -1843,11 +1917,11 @@ Main AS (
       ) + 1),
 
       -- 0.0192
-      FiscalFractionOfYear = CAST(
+      {config.dim_date.columns.fiscal_fraction_of_year.name} = CAST(
         DATEDIFF(
           day,
           FiscalYearStart,
-          TheDate
+          {config.dim_date.columns.the_date.name}
         ) + 1 AS decimal(8,4)
       ) / (DATEDIFF(
         day,
@@ -1856,72 +1930,61 @@ Main AS (
       ) + 1),
 
       -- 2020-12-26
-      FiscalCurrentMonthStart = FiscalMonthStart,
+      {config.dim_date.columns.fiscal_current_month_start.name} = FiscalMonthStart,
 
       -- 2021-01-25
-      FiscalCurrentMonthEnd = FiscalMonthEnd,
+      {config.dim_date.columns.fiscal_current_month_end.name} = FiscalMonthEnd,
 
       -- 2020-12-26
-      FiscalCurrentQuarterStart = FiscalQuarterStart,
+      {config.dim_date.columns.fiscal_current_quarter_start.name} = FiscalQuarterStart,
 
       -- 2021-03-25
-      FiscalCurrentQuarterEnd = FiscalQuarterEnd,
+      {config.dim_date.columns.fiscal_current_quarter_end.name} = FiscalQuarterEnd,
 
       -- 2020-12-26
-      FiscalCurrentYearStart = FiscalYearStart,
+      {config.dim_date.columns.fiscal_current_year_start.name} = FiscalYearStart,
 
       -- 2021-12-25
-      FiscalCurrentYearEnd = FiscalYearEnd,
+      {config.dim_date.columns.fiscal_current_year_end.name} = FiscalYearEnd,
 
       -- 2020-11-26
-      FiscalPriorMonthStart = PriorFiscalMonthStart,
+      {config.dim_date.columns.fiscal_prior_month_start.name} = PriorFiscalMonthStart,
 
       -- 2020-12-25
-      FiscalPriorMonthEnd = PriorFiscalMonthEnd,
+      {config.dim_date.columns.fiscal_prior_month_end.name} = PriorFiscalMonthEnd,
 
       -- 2020-09-26
-      FiscalPriorQuarterStart = PriorFiscalQuarterStart,
+      {config.dim_date.columns.fiscal_prior_quarter_start.name} = PriorFiscalQuarterStart,
 
       -- 2020-12-25
-      FiscalPriorQuarterEnd = PriorFiscalQuarterEnd,
+      {config.dim_date.columns.fiscal_prior_quarter_end.name} = PriorFiscalQuarterEnd,
 
       -- 2019-12-26
-      FiscalPriorYearStart = PriorFiscalYearStart,
+      {config.dim_date.columns.fiscal_prior_year_start.name} = PriorFiscalYearStart,
 
       -- 2020-12-25
-      FiscalPriorYearEnd = PriorFiscalYearEnd,
+      {config.dim_date.columns.fiscal_prior_year_end.name} = PriorFiscalYearEnd,
 
       -- 2021-01-26
-      FiscalNextMonthStart = NextFiscalMonthStart,
+      {config.dim_date.columns.fiscal_next_month_start.name} = NextFiscalMonthStart,
 
       -- 2021-02-25
-      FiscalNextMonthEnd = NextFiscalMonthEnd,
+      {config.dim_date.columns.fiscal_next_month_end.name} = NextFiscalMonthEnd,
 
       -- 2021-03-26
-      FiscalNextQuarterStart = NextFiscalQuarterStart,
+      {config.dim_date.columns.fiscal_next_quarter_start.name} = NextFiscalQuarterStart,
 
       -- 2021-06-25
-      FiscalNextQuarterEnd = NextFiscalQuarterEnd,
+      {config.dim_date.columns.fiscal_next_quarter_end.name} = NextFiscalQuarterEnd,
 
       -- 2021-12-26
-      FiscalNextYearStart = NextFiscalYearStart,
+      {config.dim_date.columns.fiscal_next_year_start.name} = NextFiscalYearStart,
 
       -- 2022-12-25
-      FiscalNextYearEnd = NextFiscalYearEnd,
-
-      -- "New Year's Day"
-      CompanyHolidayName = ch.HolidayName,
-
-      -- "New Year's Day"
-      USPublicHolidayName = ph.HolidayName
+      {config.dim_date.columns.fiscal_next_year_end.name} = NextFiscalYearEnd{holiday_column_clause}
   FROM 
     FiscalHelpers AS fh
-    -- customize-holidays JOIN START
-    LEFT OUTER JOIN integration.manual_Holidays AS ch -- Company Holidays
-      ON fh.DateKey = ch.DateKey AND ch.HolidayTypeKey = 1
-    LEFT OUTER JOIN integration.manual_Holidays AS ph -- Public Holidays
-      ON fh.DateKey = ph.DateKey AND ph.HolidayTypeKey = 2
-    -- customize-holidays JOIN END
+{holiday_join}
 ),
 
 Burnups AS (
@@ -1930,8 +1993,8 @@ Burnups AS (
 
     -- 1 - This is useful for dashboards. You can check 1 and see
     -- week-to-date for every week simultaneously. Same for mon/qtr/year.
-    WeeklyBurnupStartingMonday = IIF(
-      DayOfWeekStartingMonday <= (
+    {config.dim_date.columns.weekly_burnup_starting_monday.name} = IIF(
+      {config.dim_date.columns.day_of_week_starting_monday.name} <= (
         DATEPART(
           weekday,
           @TodayInLocal
@@ -1941,8 +2004,8 @@ Burnups AS (
       0
     ),
 
-    WeeklyBurnup = IIF(
-      DayOfWeek <= DATEPART(
+    {config.dim_date.columns.weekly_burnup.name} = IIF(
+      {config.dim_date.columns.day_of_week.name} <= DATEPART(
         weekday,
         @TodayInLocal
       ),
@@ -1951,8 +2014,8 @@ Burnups AS (
     ),
 
     -- 1
-    MonthlyBurnup = IIF(
-      DayOfMonth <= DATEPART(
+    {config.dim_date.columns.monthly_burnup.name} = IIF(
+      {config.dim_date.columns.day_of_month.name} <= DATEPART(
         day,
         @TodayInLocal
       ),
@@ -1961,8 +2024,8 @@ Burnups AS (
     ),
 
     -- 1
-    QuarterlyBurnup = IIF(
-      DayOfQuarter <= DATEDIFF(
+    {config.dim_date.columns.quarterly_burnup.name} = IIF(
+      {config.dim_date.columns.day_of_quarter.name} <= DATEDIFF(
         day,
         DATEADD(
           quarter,
@@ -1976,8 +2039,8 @@ Burnups AS (
     ),
 
     -- 1
-    YearlyBurnup = IIF(
-      DayOfYear <= DATEPART(
+    {config.dim_date.columns.yearly_burnup.name} = IIF(
+      {config.dim_date.columns.day_of_year.name} <= DATEPART(
         dayofyear,
         @TodayInLocal
       ),
@@ -1986,8 +2049,8 @@ Burnups AS (
     ),
 
     -- 0
-    FiscalMonthlyBurnup = IIF(
-      FiscalDayOfMonth <= DATEDIFF(
+    {config.dim_date.columns.fiscal_monthly_burnup.name} = IIF(
+      {config.dim_date.columns.fiscal_day_of_month.name} <= DATEDIFF(
         day,
         FiscalMonthStartToday,
         @TodayInLocal
@@ -1997,8 +2060,8 @@ Burnups AS (
     ),
 
     -- 1
-    FiscalQuarterlyBurnup = IIF(
-      FiscalDayOfQuarter <= DATEDIFF(
+    {config.dim_date.columns.fiscal_quarterly_burnup.name} = IIF(
+      {config.dim_date.columns.fiscal_day_of_quarter.name} <= DATEDIFF(
         day,
         FiscalQuarterStartToday,
         @TodayInLocal
@@ -2008,8 +2071,8 @@ Burnups AS (
     ),
 
     -- 1
-    FiscalYearlyBurnup = IIF(
-      FiscalDayOfYear <= DATEDIFF(
+    {config.dim_date.columns.fiscal_yearly_burnup.name} = IIF(
+      {config.dim_date.columns.fiscal_day_of_year.name} <= DATEDIFF(
         day,
         FiscalYearStartToday,
         @TodayInLocal
@@ -2020,172 +2083,12 @@ Burnups AS (
   FROM Main
 )
 
-INSERT INTO dbo.DimDate
+INSERT INTO {config.dim_date.table_schema}.{config.dim_date.table_name} (
+  {insert_column_clause}
+)
 SELECT 
-  DateKey,
-  TheDate,
-  ISODateName,
-  AmericanDateName,
-  DayOfWeekName,
-  DayOfWeekAbbrev,
-  MonthName,
-  MonthAbbrev,
-  YearWeekName,
-  YearMonthName,
-  MonthYearName,
-  YearQuarterName,
-  Year,
-  YearWeek,
-  ISOYearWeekCode,
-  YearMonth,
-  YearQuarter,
-  DayOfWeekStartingMonday,
-  DayOfWeek,
-  DayOfMonth,
-  DayOfQuarter,
-  DayOfYear,
-  WeekOfQuarter,
-  WeekOfYear,
-  ISOWeekOfYear,
-  Month,
-  MonthOfQuarter,
-  Quarter,
-  DaysInMonth,
-  DaysInQuarter,
-  DaysInYear,
-  DayOffsetFromToday,
-  MonthOffsetFromToday,
-  QuarterOffsetFromToday,
-  YearOffsetFromToday,
-  TodayFlag,
-  CurrentWeekStartingMondayFlag,
-  CurrentWeekFlag,
-  PriorWeekFlag,
-  NextWeekFlag,
-  CurrentMonthFlag,
-  PriorMonthFlag,
-  NextMonthFlag,
-  CurrentQuarterFlag,
-  PriorQuarterFlag,
-  NextQuarterFlag,
-  CurrentYearFlag,
-  PriorYearFlag,
-  NextYearFlag,
-  WeekdayFlag,
-  BusinessDayFlag,
-  CompanyHolidayFlag,
-  USPublicHolidayFlag,
-  FirstDayOfMonthFlag,
-  LastDayOfMonthFlag,
-  FirstDayOfQuarterFlag,
-  LastDayOfQuarterFlag,
-  FirstDayOfYearFlag,
-  LastDayOfYearFlag,
-  FractionOfWeek,
-  FractionOfMonth,
-  FractionOfQuarter,
-  FractionOfYear,
-  PriorDay,
-  NextDay,
-  SameDayPriorWeek,
-  SameDayPriorMonth,
-  SameDayPriorQuarter,
-  SameDayPriorYear,
-  SameDayNextWeek,
-  SameDayNextMonth,
-  SameDayNextQuarter,
-  SameDayNextYear,
-  CurrentWeekStart,
-  CurrentWeekEnd,
-  CurrentMonthStart,
-  CurrentMonthEnd,
-  CurrentQuarterStart,
-  CurrentQuarterEnd,
-  CurrentYearStart,
-  CurrentYearEnd,
-  PriorWeekStart,
-  PriorWeekEnd,
-  PriorMonthStart,
-  PriorMonthEnd,
-  PriorQuarterStart,
-  PriorQuarterEnd,
-  PriorYearStart,
-  PriorYearEnd,
-  NextWeekStart,
-  NextWeekEnd,
-  NextMonthStart,
-  NextMonthEnd,
-  NextQuarterStart,
-  NextQuarterEnd,
-  NextYearStart,
-  NextYearEnd,
-  WeeklyBurnupStartingMonday,
-  WeeklyBurnup,
-  MonthlyBurnup,
-  QuarterlyBurnup,
-  YearlyBurnup,
-  FiscalMonthName,
-  FiscalMonthAbbrev,
-  FiscalYearWeekName,
-  FiscalYearMonthName,
-  FiscalMonthYearName,
-  FiscalYearQuarterName,
-  FiscalYear,
-  FiscalYearWeek,
-  FiscalYearMonth,
-  FiscalYearQuarter,
-  FiscalDayOfMonth,
-  FiscalDayOfQuarter,
-  FiscalDayOfYear,
-  FiscalWeekOfQuarter,
-  FiscalWeekOfYear,
-  FiscalMonth,
-  FiscalMonthOfQuarter,
-  FiscalQuarter,
-  FiscalDaysInMonth,
-  FiscalDaysInQuarter,
-  FiscalDaysInYear,
-  FiscalCurrentMonthFlag,
-  FiscalPriorMonthFlag,
-  FiscalNextMonthFlag,
-  FiscalCurrentQuarterFlag,
-  FiscalPriorQuarterFlag,
-  FiscalNextQuarterFlag,
-  FiscalCurrentYearFlag,
-  FiscalPriorYearFlag,
-  FiscalNextYearFlag,
-  FiscalFirstDayOfMonthFlag,
-  FiscalLastDayOfMonthFlag,
-  FiscalFirstDayOfQuarterFlag,
-  FiscalLastDayOfQuarterFlag,
-  FiscalFirstDayOfYearFlag,
-  FiscalLastDayOfYearFlag,
-  FiscalFractionOfMonth,
-  FiscalFractionOfQuarter,
-  FiscalFractionOfYear,
-  FiscalCurrentMonthStart,
-  FiscalCurrentMonthEnd,
-  FiscalCurrentQuarterStart,
-  FiscalCurrentQuarterEnd,
-  FiscalCurrentYearStart,
-  FiscalCurrentYearEnd,
-  FiscalPriorMonthStart,
-  FiscalPriorMonthEnd,
-  FiscalPriorQuarterStart,
-  FiscalPriorQuarterEnd,
-  FiscalPriorYearStart,
-  FiscalPriorYearEnd,
-  FiscalNextMonthStart,
-  FiscalNextMonthEnd,
-  FiscalNextQuarterStart,
-  FiscalNextQuarterEnd,
-  FiscalNextYearStart,
-  FiscalNextYearEnd,
-  FiscalMonthlyBurnup,
-  FiscalQuarterlyBurnup,
-  FiscalYearlyBurnup,
-  CompanyHolidayName,
-  USPublicHolidayName
+  {insert_column_clause}
 FROM Burnups
-ORDER BY DateKey ASC
+ORDER BY {config.dim_date.columns.date_key.name} ASC
 OPTION (MAXRECURSION 0)
+"""

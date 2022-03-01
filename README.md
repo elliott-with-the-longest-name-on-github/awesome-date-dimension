@@ -1,3 +1,5 @@
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 # awesome-date-dimension
 
 A few months back, I had to create a date dimension. All of the scripts I could find publicly were missing a lot of the flags and other features I needed (especially around fiscal month handling) -- so I created one myself. This is written in T-SQL, but shouldn't be _too_ hard to port to another dialect of SQL.
