@@ -1232,23 +1232,17 @@ class DimFiscalMonthConfig:
     column_factory: Callable[[str, Column], Column] = None
 
     def __post_init__(self):
-        col_dict = asdict(self.columns)
-        sort_keys = [v["sort_index"] for v in col_dict.values()]
-        distinct_sort_keys = set(sort_keys)
-        assert len(sort_keys) == len(
-            distinct_sort_keys
-        ), "there was a duplicate sort key in the column definitions for DimFiscalMonthColumn."
-
         if self.column_factory is not None:
+            col_fields = fields(self.columns)
             new_cols: dict[str, Column] = {}
-            for k, v in col_dict.values():
-                new_col = self.column_factory(k, v)
+            for f in col_fields:
+                col: Column = self.columns.__dict__[f.name]
+                new_col = self.column_factory(f.name, col)
                 assert isinstance(
                     new_col, Column
                 ), f"column_factory returned a value that was not a column. This is not allowed. Value: {new_col}"
-                new_cols[k] = self.column_factory(v)
-
-            self.columns = DimFiscalMonthColumns(**new_cols)
+                new_cols[f.name] = new_col
+            object.__setattr__(self, "columns", DimFiscalMonthColumns(**new_cols))
 
 
 @dataclass(frozen=True)
@@ -1468,6 +1462,18 @@ class DimCalendarMonthColumns:
         default_factory=lambda: Column("MonthEndYearlyBurnup", True, 74000)
     )
 
+    def __post_init__(self):
+        field_names = (f.name for f in fields(self))
+        cols = [self.__dict__[name] for name in field_names]
+        assert (
+            self.month_start_key.include
+        ), "DimCalendarMonthColumns.month_start_key must be included, as it is part of the table key."
+        assert (
+            self.month_end_key.include
+        ), "DimCalendarMonthColumns.month_end_key must be included, as it is part of the table key."
+        _assert_no_duplicate_colnames(DimCalendarMonthColumns.__name__, cols)
+        _assert_no_duplicate_col_sortkeys(DimCalendarMonthColumns.__name__, cols)
+
 
 @dataclass(frozen=True)
 class DimCalendarMonthConfig:
@@ -1479,23 +1485,17 @@ class DimCalendarMonthConfig:
     column_factory: Callable[[str, Column], Column] = None
 
     def __post_init__(self):
-        col_dict = asdict(self.columns)
-        sort_keys = [v["sort_index"] for v in col_dict.values()]
-        distinct_sort_keys = set(sort_keys)
-        assert len(sort_keys) == len(
-            distinct_sort_keys
-        ), "there was a duplicate sort key in the column definitions for DimCalendarMonthColumn."
-
         if self.column_factory is not None:
+            col_fields = fields(self.columns)
             new_cols: dict[str, Column] = {}
-            for k, v in col_dict.values():
-                new_col = self.column_factory(k, v)
+            for f in col_fields:
+                col: Column = self.columns.__dict__[f.name]
+                new_col = self.column_factory(f.name, col)
                 assert isinstance(
                     new_col, Column
                 ), f"column_factory returned a value that was not a column. This is not allowed. Value: {new_col}"
-                new_cols[k] = self.column_factory(v)
-
-            self.columns = DimCalendarMonthColumns(**new_cols)
+                new_cols[f.name] = new_col
+            object.__setattr__(self, "columns", DimCalendarMonthColumns(**new_cols))
 
 
 @dataclass
