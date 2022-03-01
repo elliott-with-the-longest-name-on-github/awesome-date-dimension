@@ -1,3 +1,4 @@
+.idea
 src/awesome_date_dimension/.venv
 output/test
 test.py
